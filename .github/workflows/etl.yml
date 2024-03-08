@@ -1,1 +1,7 @@
+name: Group ETL Workflows for group 32
 
+on:
+#  schedule:
+#    - cron: '0 */3 * * *' # Run every 3 hours
+  push:
+    branches: [ main ]
