@@ -6,6 +6,7 @@ library(RSQLite)
 connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
 RSQLite::dbListTables(connection)
 
+
 # Create a new table with specified columns
 
 ## Products Table
@@ -22,6 +23,7 @@ dbExecute(connection, "
   FOREIGN KEY ('category_id') REFERENCES category('category_id')
 );
 ")
+
 
 
 # loading data from seller excel sheet to seller table
