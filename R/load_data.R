@@ -1,7 +1,6 @@
 library(readr)
 library(RSQLite)
 #install.packages("readxl")
-library(readxl)
 
 # Create a database
 connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
