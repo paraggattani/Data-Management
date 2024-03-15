@@ -229,6 +229,9 @@ insert_data("refund", read_csv("data_upload/refund_df.csv"))
 ## Buyer Orders Products Table
 insert_data("buyer_orders_products", read_csv("data_upload/buyer_orders_products.csv"))
 
+# Verify the table was created by listing all tables in the database
+RSQLite::dbListTables(connection)
+
 # Disconnect from the database
 dbDisconnect(connection)
 

@@ -2,11 +2,13 @@ library(RSQLite)
 
 # Establish a connection to your SQLite database
 connection <- dbConnect(RSQLite::SQLite(), "database/group32.db")
+
 # Define a function to perform data validation checks
-perform_data_validation <- function(table_name, column_name) {
+perform_data_validation <- function(table_name) {
   
   # Check for missing values
-  missing_values <- dbGetQuery(connection, paste("SELECT COUNT(*) AS num_missing FROM ", table_name, " WHERE ", column_name, " IS NULL"))
+  missing_values_query <- paste0("SELECT COUNT(*) AS num_missing FROM ", table_name)
+  missing_values <- dbGetQuery(connection, missing_values_query)
   cat("Missing values in", table_name, ":", missing_values$num_missing, "\n")
   
   # Check data types
@@ -14,7 +16,8 @@ perform_data_validation <- function(table_name, column_name) {
   print(column_data_types)
   
   # Check for duplicates
-  duplicate_rows <- dbGetQuery(connection, paste("SELECT COUNT(*) AS num_duplicates FROM (SELECT *, COUNT(*) AS num_rows FROM ", table_name, " GROUP BY ", column_name, " HAVING num_rows > 1)"))
+  duplicate_rows_query <- paste0("SELECT COUNT(*) AS num_duplicates FROM (SELECT *, COUNT(*) AS num_rows FROM ", table_name, " GROUP BY ", paste(column_data_types$Column, collapse = ", "), " HAVING num_rows > 1)")
+  duplicate_rows <- dbGetQuery(connection, duplicate_rows_query)
   cat("Duplicate rows in", table_name, ":", duplicate_rows$num_duplicates, "\n")
   
   # Check referential integrity (foreign key constraints)
@@ -22,17 +25,17 @@ perform_data_validation <- function(table_name, column_name) {
   
 }
 
-# Perform data validation checks for each table
-perform_data_validation("buyer", "email")
-perform_data_validation("seller", "seller_id")
-perform_data_validation("products", "product_id")
-perform_data_validation("categories", "category_id")
-perform_data_validation("contact_details", "address_id")
-perform_data_validation("review", "review_id")
-perform_data_validation("carrier", "carrier_id")
-perform_data_validation("refund", "refund_ids")
-perform_data_validation("buyer_orders_products", "product_id")
 
+# Perform data validation checks for each table
+perform_data_validation("buyer")
+perform_data_validation("seller")
+perform_data_validation("products")
+perform_data_validation("categories")
+perform_data_validation("contact_details")
+perform_data_validation("review")
+perform_data_validation("carrier")
+perform_data_validation("refund")
+perform_data_validation("buyer_orders_products")
 
 # Close the database connection
 dbDisconnect(connection)
