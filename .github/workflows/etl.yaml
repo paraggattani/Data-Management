@@ -26,13 +26,14 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           Rscript -e 'install.packages(c("ggplot2", "dplyr", "readr", "RSQLite"))'
-      - name: Execute data validation script
-        run: |
-          Rscript R/data_validation.R
 
       - name: Execute database update script
         run: |
           Rscript R/update_database.R
+          
+      - name: Execute data validation script
+        run: |
+          Rscript R/data_validation.R
 
       - name: Execute data analysis script
         run: |
