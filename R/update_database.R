@@ -235,4 +235,3 @@ RSQLite::dbListTables(connection)
 # Disconnect from the database
 dbDisconnect(connection)
 
-
