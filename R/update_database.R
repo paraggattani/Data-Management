@@ -232,8 +232,6 @@ insert_data("buyer_orders_products", read_csv("data_upload/buyer_orders_products
 # Verify the table was created by listing all tables in the database
 RSQLite::dbListTables(connection)
 
-# Disconnect from the database
-dbDisconnect(connection)
-
-
+# Optionally, verify the data was inserted
+products_table <- dbReadTable(connection, "products")
 print(products_table)
