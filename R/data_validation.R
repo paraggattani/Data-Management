@@ -13,7 +13,6 @@ perform_data_validation <- function(table_name) {
   
   # Check data types
   column_data_types <- get_column_data_types(table_name)
-  print(column_data_types)
   
   # Check for duplicates
   duplicate_rows_query <- paste0("SELECT COUNT(*) AS num_duplicates FROM (SELECT *, COUNT(*) AS num_rows FROM ", table_name, " GROUP BY ", paste(column_data_types$Column, collapse = ", "), " HAVING num_rows > 1)")
