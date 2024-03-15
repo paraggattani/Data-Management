@@ -40,8 +40,8 @@ jobs:
       - name: Add files
         run: |
           git config --global user.email "gattaniparag2812@gmail.com"
-          git config --global user.name "gattaniparag"
-          git add group32.db
+          git config --global user.name "paraggattani"
+
           
       - name: Commit files
         run: |
