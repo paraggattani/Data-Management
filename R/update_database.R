@@ -235,3 +235,5 @@ RSQLite::dbListTables(connection)
 # Disconnect from the database
 dbDisconnect(connection)
 
+
+print(products_table)
