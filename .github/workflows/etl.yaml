@@ -22,6 +22,7 @@ jobs:
           key: ${{ runner.os }}-r-${{ hashFiles('**/lockfile') }}
           restore-keys: |
             ${{ runner.os }}-r-
+            
       - name: Install packages
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
@@ -32,17 +33,10 @@ jobs:
           Rscript R/update_database.R
           
 
-      # - name: Execute data analysis script
-      #   run: |
-      #     Rscript R/basic_data_analysis.R
-      - name: Add files
+      - name: Execute data analysis script
         run: |
-          git config --global user.email "gattaniparag2812@gmail.com"
-          git config --global user.name "paraggattani"
-          git add --all figures/
-      - name: Commit files
-        run: |
-          git commit -m "Add regression plot figure"
+          Rscript R/basic_data_analysis.R
+          
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0
         with:
