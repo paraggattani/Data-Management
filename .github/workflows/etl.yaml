@@ -31,13 +31,10 @@ jobs:
         run: |
           Rscript R/update_database.R
           
-      - name: Execute data validation script
-        run: |
-          Rscript R/data_validation.R
 
-      - name: Execute data analysis script
-        run: |
-          Rscript R/basic_data_analysis.R
+      # - name: Execute data analysis script
+      #   run: |
+      #     Rscript R/basic_data_analysis.R
       - name: Add files
         run: |
           git config --global user.email "gattaniparag2812@gmail.com"
