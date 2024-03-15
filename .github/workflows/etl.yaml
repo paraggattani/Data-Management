@@ -26,9 +26,17 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           Rscript -e 'install.packages(c("ggplot2", "dplyr", "readr", "RSQLite"))'
-      - name: Execute R script
+      - name: Execute data validation script
         run: |
-          Rscript R/load_data.R
+          Rscript R/data_validation.R
+
+      - name: Execute database update script
+        run: |
+          Rscript R/update_database.R
+
+      - name: Execute data analysis script
+        run: |
+          Rscript R/basic_data_analysis.R
       - name: Add files
         run: |
           git config --global user.email "gattaniparag2812@gmail.com"
