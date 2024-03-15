@@ -122,12 +122,6 @@ dbExecute(connection, "
 dbExecute(connection, "
 CREATE TABLE IF NOT EXISTS 'buyer_orders_products' (
   'product_id' VARCHAR(255),
-  'product_name' TEXT NOT NULL,
-  'price' MONEY NOT NULL,
-  'quantity_ordered' INT NOT NULL,
-  'discount' DECIMAL(3,2),
-  'in_stock' BIT NOT NULL,
-  'remaining_available_units' INT NOT NULL,
   'category_id' VARCHAR(10),
   'order_date' DATE,
   'delivery_date' DATE,
@@ -135,25 +129,10 @@ CREATE TABLE IF NOT EXISTS 'buyer_orders_products' (
   'order_status' TEXT,
   'payment_type' TEXT,
   'buyer_id' VARCHAR(255),
-  'first_name' TEXT NOT NULL,
-  'last_name' TEXT NOT NULL,
-  'email' VARCHAR(255),
-  'password' VARCHAR(255),
-  'user_type' TEXT,
-  'expiry_date' DATE,
   'carrier_id' VARCHAR(10),
-  'address_id' VARCHAR(255),
-  'address' TEXT,
-  'country' TEXT,
-  'state' TEXT,
-  'city' TEXT,
-  'street' TEXT,
-  'phone_number' VARCHAR(10),
   FOREIGN KEY ('product_id') REFERENCES products ('product_id'),
   FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id'),
-  FOREIGN KEY ('category_id') REFERENCES categories ('category_id'),
-  FOREIGN KEY ('carrier_id') REFERENCES carrier ('carrier_id'),
-  FOREIGN KEY ('address_id') REFERENCES contact_details ('address_id')
+  FOREIGN KEY ('carrier_id') REFERENCES carrier ('carrier_id')
 );
 ")
 
@@ -235,3 +214,6 @@ RSQLite::dbListTables(connection)
 # Optionally, verify the data was inserted
 products_table <- dbReadTable(connection, "products")
 print(products_table)
+
+buyer_table <- dbReadTable(connection, "buyer")
+print(buyer_table)
