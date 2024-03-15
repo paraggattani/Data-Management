@@ -37,6 +37,16 @@ jobs:
         run: |
           Rscript R/basic_data_analysis.R
           
+      - name: Add files
+        run: |
+          git config --global user.email "gattaniparag2812@gmail.com"
+          git config --global user.name "gattaniparag"
+          git add group32.db
+          
+      - name: Commit files
+        run: |
+          git commit -m "Running latest"
+          
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0
         with:
