@@ -41,7 +41,7 @@ jobs:
         run: |
           git config --global user.email "gattaniparag2812@gmail.com"
           git config --global user.name "paraggattani"
-
+          git add --all figures/
           
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0
