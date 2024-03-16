@@ -2,8 +2,6 @@
 library(readr)
 library(RSQLite)
 
-#shalvi
-
 
 # Create a database connection
 connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
@@ -12,12 +10,12 @@ connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
 dbExecute(connection, "
   CREATE TABLE IF NOT EXISTS 'project_products' (
   'product_id' VARCHAR(255) PRIMARY KEY,
+    'seller_id' VARCHAR(10) NOT NULL,
+  'category_id' VARCHAR(10) NOT NULL,
   'product_name' TEXT NOT NULL,
   'in_stock' BIT NOT NULL DEFAULT 0,
   'available_units' INT NOT NULL DEFAULT 0,
   'price' MONEY NOT NULL CHECK (price > 0),
-  'seller_id' VARCHAR(10) NOT NULL,
-  'category_id' VARCHAR(10) NOT NULL,
   FOREIGN KEY ('seller_id') REFERENCES seller('seller_id'),
   FOREIGN KEY ('category_id') REFERENCES category('category_id')
 );
@@ -47,7 +45,7 @@ CREATE TABLE IF NOT EXISTS 'project_categories' (
 );
 ")
 
-
+## Create buyer Table
 dbExecute(connection, "
   CREATE TABLE IF NOT EXISTS 'project_buyer' (
   'buyer_id' VARCHAR PRIMARY KEY,
@@ -56,9 +54,7 @@ dbExecute(connection, "
   'email' VARCHAR NOT NULL UNIQUE,
   'password' VARCHAR NOT NULL,
   'user_type' TEXT,
-  'expiry_date' DATE,
-  'referred_by' VARCHAR,
-  FOREIGN KEY ('referred_by') REFERENCES buyer ('buyer_id')
+  'expiry_date' DATE
 );
 ")
 
@@ -67,15 +63,15 @@ dbExecute(connection, "
 dbExecute(connection, "
   CREATE TABLE IF NOT EXISTS 'project_contact_details' (
   'address_id' VARCHAR PRIMARY KEY,
+   'buyer_id' VARCHAR,
   'address' VARCHAR,
   'country' TEXT,
   'state' TEXT,
   'city' TEXT,
   'street' VARCHAR,
   'phone_number' VARCHAR(10),
-  'buyer_id' VARCHAR,
-  FOREIGN KEY ('buyer_id')
-    REFERENCES buyer ('buyer_id')
+  'address_type' TEXT,
+  FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id')
 );
 ")
 
@@ -83,59 +79,40 @@ dbExecute(connection, "
 dbExecute(connection, "
   CREATE TABLE IF NOT EXISTS 'project_review' (
   'review_id' VARCHAR PRIMARY KEY,
+    'product_id' VARCHAR,
+  'buyer_id' VARCHAR,
   'rating' INT CHECK (rating >= 1 AND rating <= 5),
   'review' TEXT,
   'review_date' DATE,
-  'product_id' VARCHAR,
-  'buyer_id' VARCHAR,
-  FOREIGN KEY ('buyer_id')
-    REFERENCES buyer ('buyer_id')
-  FOREIGN KEY ('product_id')
-    REFERENCES products ('product_id')
+   FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id'),
+   FOREIGN KEY ('product_id') REFERENCES products ('product_id')
 );
 ")
 
-
-## Create carrier Table
-dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'project_carrier' (
-  'carrier_id' VARCHAR PRIMARY KEY,
-  'carrier_name' TEXT NOT NULL,
-  'carrier_phone' VARCHAR(10),
-  'carrier_email' TEXT UNIQUE
-);
-")
-
-
-## Create refund Table
-dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'project_refund' (
-  'product_id' VARCHAR(255),
-  'refund_ids' VARCHAR PRIMARY KEY,
-  'refund_price' MONEY, 
-  'refund_status' TEXT,
-  'refund_reason' TEXT,
-  FOREIGN KEY ('product_id')
-    REFERENCES products ('product_id')
-);
-")
 
 
 #Create relationship table buyer_orders_products
 dbExecute(connection, "
 CREATE TABLE IF NOT EXISTS 'project_buyer_orders_products' (
+  'buyer_id' VARCHAR(255),
   'product_id' VARCHAR(255),
-  'category_id' VARCHAR(10),
+  'quantity_ordered' INT NOT NULL DEFAULT 1,
   'order_date' DATE,
   'delivery_date' DATE,
-  'shipping' MONEY,
   'order_status' TEXT,
   'payment_type' TEXT,
-  'buyer_id' VARCHAR(255),
-  'carrier_id' VARCHAR(10),
+  'address_type' TEXT,
   FOREIGN KEY ('product_id') REFERENCES products ('product_id'),
-  FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id'),
-  FOREIGN KEY ('carrier_id') REFERENCES carrier ('carrier_id')
+  FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id')
+);
+")
+
+#Create relationship table references
+dbExecute(connection, "
+CREATE TABLE IF NOT EXISTS 'project_references' (
+  'buyer_id' VARCHAR(255),
+  'referred_by' VARCHAR(255),
+   FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id')
 );
 ")
 
@@ -143,28 +120,32 @@ CREATE TABLE IF NOT EXISTS 'project_buyer_orders_products' (
 # Verify the table was created by listing all tables in the database
 RSQLite::dbListTables(connection)
 
+#load the dataset into data frames
+# List all CSV files in the data_upload directory
+csv_files <- list.files(path = "data_upload", pattern = "\\.csv$", full.names = TRUE)
 
-# loading data from seller excel sheet to seller table
-products_data <- read_csv("data_upload/products_df.csv")
+# Create a list to store all data frames
+all_data_frames <- list()
 
-# loading data from seller excel sheet to seller table
-seller_data <- read_csv("data_upload/sellers_df.csv")
+# Loop through each CSV file
+for (csv_file in csv_files) {
+  # Extract filename without extension
+  filename <- tools::file_path_sans_ext(basename(csv_file))
+  
+  # Read the CSV file into a data frame
+  data_frame <- read.csv(csv_file)
+  
+  # Assign the data frame to a new variable with a name starting with "project_"
+  assign(paste0("project_", filename), data_frame)
+  
+  # Add the data frame to the list
+  all_data_frames[[paste0("project_", filename)]] <- data_frame
+}
 
-# loading data from seller excel sheet to seller table
-categories_data <- read_csv("data_upload/categories_df.csv")
+# Check the names of the created data frames
+print(names(all_data_frames))
 
-# loading data from buyer excel sheet to buyer table
-buyer_data <- read_csv("data_upload/buyer_df.csv")
-
-contact_data <- read_csv("data_upload/contact_df.csv")
-
-review_data <- read_csv("data_upload/review_df.csv")
-
-carrier_data <- read_csv("data_upload/carrier_df.csv")
-
-refund_data <- read_csv("data_upload/refund_df.csv")
-
-buyer_orders_products_data <- read_csv("data_upload/buyer_orders_products.csv")
+# Data Validation
 
 
 # Function to check if data exists in a table
@@ -185,31 +166,29 @@ insert_data <- function(table_name, data) {
 }
 
 ## Products Table
-insert_data("products", read_csv("data_upload/products_df.csv"))
+insert_data("project_products", read_csv("data_upload/products_df.csv"))
 
 ## Seller Table
-insert_data("seller", read_csv("data_upload/sellers_df.csv"))
+insert_data("project_seller", read_csv("data_upload/sellers_df.csv"))
 
 ## Categories Table
-insert_data("categories", read_csv("data_upload/categories_df.csv"))
+insert_data("project_categories", read_csv("data_upload/categories_df.csv"))
 
 ## Buyer Table
-insert_data("buyer", read_csv("data_upload/buyer_df.csv"))
+insert_data("project_buyer", read_csv("data_upload/buyer_df.csv"))
 
 ## Contact Details Table
-insert_data("contact_details", read_csv("data_upload/contact_df.csv"))
+insert_data("project_contact_details", read_csv("data_upload/contact_df.csv"))
 
 ## Review Table
-insert_data("review", read_csv("data_upload/review_df.csv"))
-
-## Carrier Table
-insert_data("carrier", read_csv("data_upload/carrier_df.csv"))
-
-## Refund Table
-insert_data("refund", read_csv("data_upload/refund_df.csv"))
+insert_data("project_review", read_csv("data_upload/review_df.csv"))
 
 ## Buyer Orders Products Table
-insert_data("buyer_orders_products", read_csv("data_upload/buyer_orders_products.csv"))
+insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_products.csv"))
+
+
+## Self referencing table for buyer
+insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_products.csv"))
 
 # Verify the table was created by listing all tables in the database
 RSQLite::dbListTables(connection)
@@ -220,3 +199,94 @@ print(products_table)
 
 buyer_table <- dbReadTable(connection, "buyer")
 print(buyer_table)
+
+#basic data analysis part
+
+#Average daily sales
+#calculating the average revenue we are earning every day
+
+
+average_sales<- RSQLite::dbGetQuery(connection,"
+          SELECT SUM(a.price) / COUNT(DISTINCT(b.order_date)) AS average_sales
+          FROM project_buyer_orders_products b
+          INNER JOIN project_products a ON b.product_id = a.product_id " )
+#Total sales 
+#Calculating the revenue we have
+
+total_sales<-RSQLite::dbGetQuery(connection, "
+          SELECT SUM(a.price) AS total_sales
+          FROM project_buyer_orders_products b
+          INNER JOIN project_products a ON b.product_id = a.product_id " )
+
+
+# best performing products by revenue
+
+top_products <- RSQLite::dbGetQuery(connection, 
+                                    "SELECT SUM(a.price) AS revenue, b.product_id, a.product_name
+                                           FROM project_buyer_orders_products b
+                                           INNER JOIN project_products a ON b.product_id = a.product_id
+                                           GROUP BY a.product_id
+                                           ORDER BY revenue DESC
+                                           " )
+
+
+#revenue by categories
+#We calculate the total revenue of each category
+
+revenue_by_categories <- RSQLite::dbGetQuery(connection,
+                                             "SELECT c.category_name, SUM(b.price) AS revenue
+                                      FROM project_buyer_orders_products a
+                                      INNER JOIN project_products b ON a.product_id = b.product_id
+                                      INNER JOIN project_categories c ON b.category_id = c.category_id
+                                      GROUP BY c.category_name
+                                      ORDER BY revenue DESC
+                                      " )
+
+#Top sellers
+#We check which sellers are making the most revenue
+
+top_sellers <- RSQLite::dbGetQuery(connection, 
+                                   "SELECT SUM(b.price) AS revenue, c.seller_name
+                                           FROM project_buyer_orders_products a
+                                           INNER JOIN project_products b ON a.product_id = b.product_id
+                                           INNER JOIN project_seller c ON b.seller_id = c.seller_id
+                                           GROUP BY c.seller_name
+                                           ORDER BY revenue DESC
+                                            " )
+
+sales_by_state <- RSQLite::dbGetQuery(connection, 
+                                      "SELECT SUM(b.price) AS revenue, c.state
+                                      FROM project_buyer_orders_products a
+                                      INNER JOIN project_products b ON a.product_id = b.product_id
+                                      INNER JOIN project_contact_details c ON a.buyer_id = c.buyer_id
+                                      GROUP BY c.state
+                                      ORDER BY revenue DESC" )
+
+
+sales_by_city <- RSQLite::dbGetQuery(connection, 
+                                     "SELECT SUM(b.price) AS revenue, c.city
+                                      FROM project_buyer_orders_products a
+                                      INNER JOIN project_products b ON a.product_id = b.product_id
+                                      INNER JOIN project_contact_details c ON a.buyer_id = c.buyer_id
+                                      GROUP BY c.city
+                                      ORDER BY revenue DESC" )
+
+revenue_by_city <- ggplot(sales_by_city, aes(x = city, y = 1, size = revenue)) +
+  geom_point(shape = 21, fill = "blue") +
+  scale_size_continuous(range = c(3, 10)) +
+  labs(title = "Revenue by City", x = "City", y = "") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#adding it to "figures folder"
+# Save the plot as an image to another directory
+ggsave(filename = "../figures/your_plot_name.png", plot = revenue_by_city)
+
+Sales_by_user_type <- RSQLite::dbGetQuery(connection, 
+                                          "SELECT SUM(b.price) AS revenue, c.user_type
+                                      FROM project_buyer_orders_products a
+                                      INNER JOIN project_products b ON a.product_id = b.product_id
+                                      INNER JOIN project_buyer c ON a.buyer_id = c.buyer_id
+                                      GROUP BY c.user_type
+                                      ORDER BY revenue DESC" )
+
