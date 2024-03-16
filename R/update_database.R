@@ -7,7 +7,7 @@ connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
 
 ## Products Table
 dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'products' (
+  CREATE TABLE IF NOT EXISTS 'project_products' (
   'product_id' VARCHAR(255) PRIMARY KEY,
   'product_name' TEXT NOT NULL,
   'in_stock' BIT NOT NULL DEFAULT 0,
@@ -23,7 +23,7 @@ dbExecute(connection, "
 
 ## Create Seller Table
 dbExecute(connection, "
-CREATE TABLE IF NOT EXISTS 'seller' (
+CREATE TABLE IF NOT EXISTS 'project_seller' (
 'seller_id' VARCHAR(10) PRIMARY KEY,
 'seller_name' TEXT NOT NULL,
 'url' VARCHAR(255),
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS 'seller' (
 
 ## Create category Table
 dbExecute(connection, "
-CREATE TABLE IF NOT EXISTS 'categories' (
+CREATE TABLE IF NOT EXISTS 'project_categories' (
 'category_id' VARCHAR(255) PRIMARY KEY,
 'category_name' TEXT NOT NULL 
 );
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS 'categories' (
 
 
 dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'buyer' (
+  CREATE TABLE IF NOT EXISTS 'project_buyer' (
   'buyer_id' VARCHAR PRIMARY KEY,
   'first_name' TEXT NOT NULL,
   'last_name' TEXT,
@@ -62,7 +62,7 @@ dbExecute(connection, "
 
 ## Create contact details Table
 dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'contact_details' (
+  CREATE TABLE IF NOT EXISTS 'project_contact_details' (
   'address_id' VARCHAR PRIMARY KEY,
   'address' VARCHAR,
   'country' TEXT,
@@ -78,7 +78,7 @@ dbExecute(connection, "
 
 ## Create Review Table
 dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'review' (
+  CREATE TABLE IF NOT EXISTS 'project_review' (
   'review_id' VARCHAR PRIMARY KEY,
   'rating' INT CHECK (rating >= 1 AND rating <= 5),
   'review' TEXT,
@@ -95,7 +95,7 @@ dbExecute(connection, "
 
 ## Create carrier Table
 dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'carrier' (
+  CREATE TABLE IF NOT EXISTS 'project_carrier' (
   'carrier_id' VARCHAR PRIMARY KEY,
   'carrier_name' TEXT NOT NULL,
   'carrier_phone' VARCHAR(10),
@@ -106,7 +106,7 @@ dbExecute(connection, "
 
 ## Create refund Table
 dbExecute(connection, "
-  CREATE TABLE IF NOT EXISTS 'refund' (
+  CREATE TABLE IF NOT EXISTS 'project_refund' (
   'product_id' VARCHAR(255),
   'refund_ids' VARCHAR PRIMARY KEY,
   'refund_price' MONEY, 
@@ -120,7 +120,7 @@ dbExecute(connection, "
 
 #Create relationship table buyer_orders_products
 dbExecute(connection, "
-CREATE TABLE IF NOT EXISTS 'buyer_orders_products' (
+CREATE TABLE IF NOT EXISTS 'project_buyer_orders_products' (
   'product_id' VARCHAR(255),
   'category_id' VARCHAR(10),
   'order_date' DATE,
