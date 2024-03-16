@@ -2,6 +2,8 @@
 library(readr)
 library(RSQLite)
 
+#shalvi
+
 # Create a database connection
 connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
 
