@@ -36,18 +36,3 @@ jobs:
       - name: Execute data analysis script
         run: |
           Rscript R/basic_data_analysis.R
-          
-      - name: Add files
-        run: |
-          git config --global user.email "gattaniparag2812@gmail.com"
-          git config --global user.name "paraggattani"
-          git add --all figures/
-      - name: Commit files
-        run: |
-          git commit -m "Updates"
-          
-      - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-            github_token: ${{ secrets.GROUP_TOKEN }}
-            branch: main
