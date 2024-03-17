@@ -2,13 +2,10 @@
 library(readr)
 library(RSQLite)
 library(dplyr)
-library(tidyverse)
 library(sf)
 library(rnaturalearth)
 library(ggplot2)
 library(rnaturalearthdata)
-
-#no_changes required
 
 # Create a database connection
 connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
@@ -618,3 +615,4 @@ ggsave(filename = paste0(figure_directory, "highest_rev_plot_", this_filename_da
 
 # Save buyers_by_orders_plot
 ggsave(filename = paste0(figure_directory, "buyers_by_orders_plot_", this_filename_date, "_", this_filename_time, ".png"), plot = buyers_by_orders_plot)
+
