@@ -190,7 +190,7 @@ validate_address <- function(address) {
 library(readr)
 
 # Read the contact dataframe
-contact_df <- read_csv("../data_upload/contact_df.csv")
+contact_df <- read_csv("data_upload/contact_df.csv")
 
 # Validate phone numbers
 valid_phone <- sapply(contact_df$phone_number, validate_phone_number)
@@ -223,14 +223,14 @@ sellers_df <- distinct(sellers_df, email, .keep_all = TRUE)
 library(dplyr)
 
 # Read CSV files into data frames
-products_df <- read.csv("../data_upload/products_df.csv")
-sellers_df <- read.csv("../data_upload/sellers_df.csv")
-categories_df <- read.csv("../data_upload/categories_df.csv")
-buyer_df <- read.csv("../data_upload/buyer_df.csv")
-contact_df <- read.csv("../data_upload/contact_df.csv")
-review_df <- read.csv("../data_upload/review_df.csv")
-references_df <- read.csv("../data_upload/references_df.csv")
-buyer_orders_products <- read.csv("../data_upload/buyer_orders_products.csv")
+products_df <- read.csv("data_upload/products_df.csv")
+sellers_df <- read.csv("data_upload/sellers_df.csv")
+categories_df <- read.csv("data_upload/categories_df.csv")
+buyer_df <- read.csv("data_upload/buyer_df.csv")
+contact_df <- read.csv("data_upload/contact_df.csv")
+review_df <- read.csv("data_upload/review_df.csv")
+references_df <- read.csv("data_upload/references_df.csv")
+buyer_orders_products <- read.csv("data_upload/buyer_orders_products.csv")
 
 # Ensure referential integrity between tables
 
