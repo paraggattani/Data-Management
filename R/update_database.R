@@ -213,14 +213,14 @@ if (length(invalid_addresses) > 0) {
   contact_df <- contact_df[valid_address, ]
 }
 
+# Load necessary library
+library(dplyr)
+
 # Remove duplicate rows based on email IDs in buyer_df
 buyer_df <- distinct(buyer_df, email, .keep_all = TRUE)
 
 # Remove duplicate rows based on email IDs in sellers_df
 sellers_df <- distinct(sellers_df, email, .keep_all = TRUE)
-
-# Load necessary libraries
-library(dplyr)
 
 # Read CSV files into data frames
 products_df <- read.csv("data_upload/products_df.csv")
