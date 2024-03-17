@@ -1,7 +1,12 @@
 # Load necessary libraries
 library(readr)
 library(RSQLite)
-
+library(dplyr)
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+library(ggplot2)
+library(rnaturalearthdata)
 
 # Create a database connection
 connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
@@ -91,7 +96,7 @@ dbExecute(connection, "
 
 
 
-#Create relationship table buyer_orders_products
+#Create relationship table project_buyer_orders_products
 dbExecute(connection, "
 CREATE TABLE IF NOT EXISTS 'project_buyer_orders_products' (
   'buyer_id' VARCHAR(255),
@@ -185,148 +190,130 @@ validate_address <- function(address) {
   return(TRUE)
 }
 
-
-# Load necessary libraries
-library(readr)
-
-# Read the contact dataframe
-contact_df <- read_csv("data_upload/contact_df.csv")
-
 # Validate phone numbers
-valid_phone <- sapply(contact_df$phone_number, validate_phone_number)
+valid_phone <- sapply(project_contact_df$phone_number, validate_phone_number)
 
 # Validate addresses
-valid_address <- sapply(contact_df$address, validate_address)
+valid_address <- sapply(project_contact_df$address, validate_address)
 
 # Check for invalid phone numbers and addresses
-invalid_phone_numbers <- contact_df$phone_number[!valid_phone]
-invalid_addresses <- contact_df$address[!valid_address]
+invalid_phone_numbers <- project_contact_df$phone_number[!valid_phone]
+invalid_addresses <- project_contact_df$address[!valid_address]
 
 # If there are any invalid entries, remove them
 if (length(invalid_phone_numbers) > 0) {
   cat("Invalid phone numbers:", invalid_phone_numbers, "\n")
-  contact_df <- contact_df[valid_phone, ]
+  project_contact_df <- project_contact_df[valid_phone, ]
 }
 
 if (length(invalid_addresses) > 0) {
   cat("Invalid addresses:", invalid_addresses, "\n")
-  contact_df <- contact_df[valid_address, ]
+  project_contact_df <- project_contact_df[valid_address, ]
 }
 
-# Load necessary library
-library(dplyr)
+# Remove duplicate rows based on email IDs in project_buyer_df
+project_buyer_df <- distinct(project_buyer_df, email, .keep_all = TRUE)
 
-# Remove duplicate rows based on email IDs in buyer_df
-buyer_df <- distinct(buyer_df, email, .keep_all = TRUE)
+# Remove duplicate rows based on email IDs in project_sellers_df
+project_sellers_df <- distinct(project_sellers_df, email, .keep_all = TRUE)
 
-# Remove duplicate rows based on email IDs in sellers_df
-sellers_df <- distinct(sellers_df, email, .keep_all = TRUE)
 
-# Read CSV files into data frames
-products_df <- read.csv("data_upload/products_df.csv")
-sellers_df <- read.csv("data_upload/sellers_df.csv")
-categories_df <- read.csv("data_upload/categories_df.csv")
-buyer_df <- read.csv("data_upload/buyer_df.csv")
-contact_df <- read.csv("data_upload/contact_df.csv")
-review_df <- read.csv("data_upload/review_df.csv")
-references_df <- read.csv("data_upload/references_df.csv")
-buyer_orders_products <- read.csv("data_upload/buyer_orders_products.csv")
 
 # Ensure referential integrity between tables
 
-# Ensure category_id in products_df exists in categories_df
-if (any(!products_df$category_id %in% categories_df$category_id)) {
-  stop("Foreign key violation: category_id in products_df does not exist in categories_df")
+# Ensure category_id in project_products_df exists in project_categories_df
+if (any(!project_products_df$category_id %in% project_categories_df$category_id)) {
+  stop("Foreign key violation: category_id in project_products_df does not exist in project_categories_df")
 }
 
-# Ensure buyer_id in contact_df exists in buyer_df
-if (any(!contact_df$buyer_id %in% buyer_df$buyer_id)) {
-  stop("Foreign key violation: buyer_id in contact_df does not exist in buyer_df")
+# Ensure buyer_id in project_contact_df exists in project_buyer_df
+if (any(!project_contact_df$buyer_id %in% project_buyer_df$buyer_id)) {
+  stop("Foreign key violation: buyer_id in project_contact_df does not exist in project_buyer_df")
 }
 
-# Ensure buyer_id in review_df exists in buyer_df
-if (any(!review_df$buyer_id %in% buyer_df$buyer_id)) {
-  stop("Foreign key violation: buyer_id in review_df does not exist in buyer_df")
+# Ensure buyer_id in project_review_df exists in project_buyer_df
+if (any(!project_review_df$buyer_id %in% project_buyer_df$buyer_id)) {
+  stop("Foreign key violation: buyer_id in project_review_df does not exist in project_buyer_df")
 }
 
-# Ensure product_id in review_df exists in products_df
-if (any(!review_df$product_id %in% products_df$product_id)) {
-  stop("Foreign key violation: product_id in review_df does not exist in products_df")
+# Ensure product_id in project_review_df exists in project_products_df
+if (any(!project_review_df$product_id %in% project_products_df$product_id)) {
+  stop("Foreign key violation: product_id in project_review_df does not exist in project_products_df")
 }
 
-# Ensure buyer_id and product_id in buyer_orders_products exist in buyer_df and products_df respectively
-if (any(!buyer_orders_products$buyer_id %in% buyer_df$buyer_id) ||
-    any(!buyer_orders_products$product_id %in% products_df$product_id)) {
-  stop("Foreign key violation: buyer_id or product_id in buyer_orders_products do not exist in buyer_df or products_df")
+# Ensure buyer_id and product_id in project_buyer_orders_products exist in project_buyer_df and project_products_df respectively
+if (any(!project_buyer_orders_products$buyer_id %in% project_buyer_df$buyer_id) ||
+    any(!project_buyer_orders_products$product_id %in% project_products_df$product_id)) {
+  stop("Foreign key violation: buyer_id or product_id in project_buyer_orders_products do not exist in project_buyer_df or project_products_df")
 }
 
-# Ensure buyer_id and referred_by in references_df exist in buyer_df
-if (any(!references_df$buyer_id %in% buyer_df$buyer_id) ||
-    any(!references_df$referred_by %in% buyer_df$buyer_id)) {
-  stop("Foreign key violation: buyer_id or referred_by in references_df do not exist in buyer_df")
+# Ensure buyer_id and referred_by in project_references_df exist in project_buyer_df
+if (any(!project_references_df$buyer_id %in% project_buyer_df$buyer_id) ||
+    any(!project_references_df$referred_by %in% project_buyer_df$buyer_id)) {
+  stop("Foreign key violation: buyer_id or referred_by in project_references_df do not exist in project_buyer_df")
 }
 
 # Check for new data if available in the datasets.
 # Function to check if data exists in a table
-data_exists <- function(table_name) {
+data_exists <- function(connection, table_name) {
   query <- paste0("SELECT COUNT(*) FROM ", table_name)
   result <- dbGetQuery(connection, query)
   return(result[[1]] > 0)
 }
 
-# Function to insert data into a table if it doesn't exist
-insert_data <- function(table_name, data) {
-  if (!data_exists(table_name)) {
-    dbWriteTable(connection, table_name, data, append = TRUE, row.names = FALSE)
-    cat("Data inserted into", table_name, "\n")
-  } else {
+# Function to insert data into a table from a data frame
+insert_data_from_df <- function(connection, table_name, data_frame) {
+  # Check if data already exists in the table
+  if (data_exists(connection, table_name)) {
     cat("Data already exists in", table_name, "\n")
+    return()
   }
+  
+  # If data doesn't exist, insert it into the table
+  dbWriteTable(connection, table_name, data_frame, row.names = FALSE, append = TRUE)
+  cat("Data inserted into", table_name, "\n")
 }
 
-## Products Table
-insert_data("project_products", read_csv("data_upload/products_df.csv"))
+# Insert data from data frames into respective tables
+insert_data_from_df(connection, "project_products", project_products_df)
+insert_data_from_df(connection, "project_seller", project_sellers_df)
+insert_data_from_df(connection, "project_categories", project_categories_df)
+insert_data_from_df(connection, "project_buyer", project_buyer_df)
+insert_data_from_df(connection, "project_contact_details", project_contact_df)
+insert_data_from_df(connection, "project_review", project_review_df)
+insert_data_from_df(connection, "project_buyer_orders_products", project_buyer_orders_products)
+insert_data_from_df(connection, "project_references", project_references_df)
 
-## Seller Table
-insert_data("project_seller", read_csv("data_upload/sellers_df.csv"))
-
-## Categories Table
-insert_data("project_categories", read_csv("data_upload/categories_df.csv"))
-
-## Buyer Table
-insert_data("project_buyer", read_csv("data_upload/buyer_df.csv"))
-
-## Contact Details Table
-insert_data("project_contact_details", read_csv("data_upload/contact_df.csv"))
-
-## Review Table
-insert_data("project_review", read_csv("data_upload/review_df.csv"))
-
-## Buyer Orders Products Table
-insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_products.csv"))
-
-
-## Self referencing table for buyer
-insert_data("project_references", read_csv("data_upload/references_df.csv"))
 
 # Verify the table was created by listing all tables in the database
 #RSQLite::dbListTables(connection)
 
 # Optionally, verify the data was inserted
 products_table <- dbReadTable(connection, "project_products")
-
 buyer_table <- dbReadTable(connection, "project_buyer")
 
 # Data Analysis
 
+#1
 #Average daily sales
 #calculating the average revenue we are earning every day
 
 
-average_sales<- RSQLite::dbGetQuery(connection,"
-          SELECT SUM(a.price) / COUNT(DISTINCT(b.order_date)) AS average_sales
+sales<- RSQLite::dbGetQuery(connection,"
+          SELECT a.price, datetime(b.order_date, 'unixepoch') AS date_time
           FROM project_buyer_orders_products b
           INNER JOIN project_products a ON b.product_id = a.product_id " )
+
+
+sales_by_date <- sales %>%
+  separate(date_time, into = c("date", "time"), sep = " ")
+
+average_revenue <-sales_by_date %>%
+  group_by(date) %>%
+  summarise(total_revenue = sum(price)) %>%
+  summarise(average_revenue = sum(total_revenue) / n_distinct(date))
+
+#2
 #Total sales 
 #Calculating the revenue we have
 
@@ -335,11 +322,11 @@ total_sales<-RSQLite::dbGetQuery(connection, "
           FROM project_buyer_orders_products b
           INNER JOIN project_products a ON b.product_id = a.product_id " )
 
-
+#3
 # best performing products by revenue
 
-top_products <- RSQLite::dbGetQuery(connection, 
-                                    "SELECT SUM(a.price) AS revenue, b.product_id, a.product_name
+products <- RSQLite::dbGetQuery(connection, 
+                                "SELECT SUM(a.price) AS revenue, b.product_id, a.product_name
                                            FROM project_buyer_orders_products b
                                            INNER JOIN project_products a ON b.product_id = a.product_id
                                            GROUP BY a.product_id
@@ -347,6 +334,23 @@ top_products <- RSQLite::dbGetQuery(connection,
                                            " )
 
 
+top_10_products <- RSQLite::dbGetQuery(connection, 
+                                       "SELECT SUM(a.price) AS revenue, b.product_id, a.product_name
+                                           FROM project_buyer_orders_products b
+                                           INNER JOIN project_products a ON b.product_id = a.product_id
+                                           GROUP BY a.product_id
+                                           ORDER BY revenue DESC
+                                           LIMIT 10" )
+
+top_10 <- ggplot(top_10_products, aes(x = reorder(product_name, -revenue), y = revenue, fill = product_name)) +
+  geom_bar(stat = "identity",show.legend = FALSE) +
+  labs(title = "Top 10 Products by Revenue", x = "Product Name", y = "Revenue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+top_10
+
+#4
 #revenue by categories
 #We calculate the total revenue of each category
 
@@ -359,6 +363,46 @@ revenue_by_categories <- RSQLite::dbGetQuery(connection,
                                       ORDER BY revenue DESC
                                       " )
 
+#Finding the revenue for each category over time 
+revenue_by_categories_per_date <- RSQLite::dbGetQuery(connection,
+                                                      "SELECT c.category_name, b.price, datetime(a.order_date, 'unixepoch') AS date_time
+                                      FROM project_buyer_orders_products a
+                                      INNER JOIN project_products b ON a.product_id = b.product_id
+                                      INNER JOIN project_categories c ON b.category_id = c.category_id
+                                      
+                                      " )
+revenue_by_categories_per_date<- revenue_by_categories_per_date %>%
+  separate(date_time, into = c("date", "time"), sep = " ")
+
+
+revenue_by_categories_per_date <- revenue_by_categories_per_date  %>%
+  group_by(category_name, date) %>%
+  summarise(sum_price = sum(price)) %>%
+  ungroup()
+#Revenue by category over time
+revenue_by_categories_plot <- ggplot(revenue_by_categories_per_date, aes(x = date, y = sum_price, group = category_name, color = category_name)) +
+  geom_line() +
+  facet_wrap(~ category_name, scales = "free_y") +
+  labs(title = "Revenue by Category Over Time", x = "Date", y = "Revenue") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "none")
+
+revenue_by_categories_plot
+
+#ggplot for revenue by category bar_plot
+revenue_by_categories <- revenue_by_categories[order(-revenue_by_categories$revenue),]
+
+revenue_by_categories_bar <- ggplot(revenue_by_categories, aes(reorder(category_name, -revenue), y = revenue, fill = category_name)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Revenue by Category", fill = "Category") +
+  theme_minimal() +
+  theme(legend.position = "none") 
+
+revenue_by_categories_bar
+
+#5
 #Top sellers
 #We check which sellers are making the most revenue
 
@@ -371,6 +415,24 @@ top_sellers <- RSQLite::dbGetQuery(connection,
                                            ORDER BY revenue DESC
                                             " )
 
+top_10_sellers <- RSQLite::dbGetQuery(connection, 
+                                      "SELECT SUM(b.price) AS revenue, c.seller_name
+                                           FROM project_buyer_orders_products a
+                                           INNER JOIN project_products b ON a.product_id = b.product_id
+                                           INNER JOIN project_seller c ON b.seller_id = c.seller_id
+                                           GROUP BY c.seller_name
+                                           ORDER BY revenue DESC
+                                           LIMIT 10" )
+top_10_sellers_plot <- ggplot(top_10_sellers, aes(x = reorder(seller_name, -revenue), y = revenue, fill = seller_name)) +
+  geom_bar(stat = "identity",show.legend = FALSE) +
+  labs(title = "Top 10 Sellers by Revenue", x = "Seller Name", y = "Revenue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+top_10_sellers_plot
+
+#6
+#calculating sales by state
 sales_by_state <- RSQLite::dbGetQuery(connection, 
                                       "SELECT SUM(b.price) AS revenue, c.state
                                       FROM project_buyer_orders_products a
@@ -378,8 +440,8 @@ sales_by_state <- RSQLite::dbGetQuery(connection,
                                       INNER JOIN project_contact_details c ON a.buyer_id = c.buyer_id
                                       GROUP BY c.state
                                       ORDER BY revenue DESC" )
-
-
+#7
+#sales_by_city
 sales_by_city <- RSQLite::dbGetQuery(connection, 
                                      "SELECT SUM(b.price) AS revenue, c.city
                                       FROM project_buyer_orders_products a
@@ -388,16 +450,113 @@ sales_by_city <- RSQLite::dbGetQuery(connection,
                                       GROUP BY c.city
                                       ORDER BY revenue DESC" )
 
-revenue_by_city <- ggplot(sales_by_city, aes(x = city, y = 1, size = revenue)) +
-  geom_point(shape = 21, fill = "blue") +
-  scale_size_continuous(range = c(3, 10)) +
-  labs(title = "Revenue by City", x = "City", y = "") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-#adding it to "figures folder"
-# Save the plot as an image to another directory
-ggsave(filename = "figures/your_plot_name.png", plot = revenue_by_city)
+sales_by_top10_city <- RSQLite::dbGetQuery(connection, 
+                                           "SELECT SUM(b.price) AS revenue, c.city, c.state
+                                      FROM project_buyer_orders_products a
+                                      INNER JOIN project_products b ON a.product_id = b.product_id
+                                      INNER JOIN project_contact_details c ON a.buyer_id = c.buyer_id
+                                      GROUP BY c.city
+                                      ORDER BY revenue DESC
+                                      LIMIT 10" )
+
+
+cities_uk <- data.frame(
+  city = c("Edinburgh", "Bangor", "Derby", "St Davids", "Ripon", "Doncaster", "Canterbury", "Coventry", "Lisburn", "St Asaph"),
+  lon = c(-3.1883, -4.1267, -1.4721, -5.2717, -1.5211, -1.1307, 1.0756, -1.5118, -6.0332, -3.4436),
+  lat = c(55.9533, 53.2268, 52.9228, 51.8815, 54.1361, 53.5228, 51.2808, 52.4068, 54.5097, 53.2577)
+)
+
+merged_data <- merge(cities_uk, sales_by_top10_city, by = "city", all.x = TRUE)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+uk <- world[world$admin == 'United Kingdom', ]
+df_sf <- st_as_sf(merged_data, coords = c("lon", "lat"), crs = 4326)
+
+#city_colors <- c("London" = "red", "Manchester" = "blue", "Birmingham" = "green", "Leeds" = "yellow", "Glasgow" = "purple", "Liverpool" = "orange", "Newcastle" = "pink", "Sheffield" = "brown", "Bristol" = "cyan", "Edinburgh" = "magenta")
+
+highest_rev_plot <- ggplot() +
+  geom_sf(data = uk, fill = "white", color = "black") +
+  geom_sf(data = df_sf, aes(color = city)) +
+  geom_text(data = merged_data , aes(x = lon, y = lat, label = revenue), size = 3, hjust = 0, nudge_x = 0.05) +
+  scale_color_discrete(name = "City") +
+  theme_void() +
+  theme(legend.position = "bottom")+
+  labs(title = "top 10 cities with highest revenue")
+
+highest_rev_plot
+
+
+
+#8
+#using sql to create a dataframe to find the sale per product
+Sales_user_type <- RSQLite::dbGetQuery(connection,
+                                       "SELECT a.price, b.buyer_id, c.user_type,datetime(b.order_date, 'unixepoch') AS date_time
+                                      FROM project_products a
+                                      INNER JOIN project_buyer_orders_products b ON a.product_id = b.product_id
+ 
+                                                                           INNER JOIN project_buyer c ON b.buyer_id = c.buyer_id ")
+#8
+#using R to sum sales per order
+revenue_per_order <- Sales_user_type  %>%
+  group_by(date_time, buyer_id, user_type) %>%
+  summarise(sum_price = sum(price)) %>%
+  ungroup()
+
+#Counting orders per buyer
+number_of_orders_per_buyer <- revenue_per_order %>%
+  count(buyer_id)
+
+Count_of_buyers <- RSQLite::dbGetQuery(connection,"
+                                       SELECT DISTINCT(buyer_id)
+                                       FROM project_buyer ")
+
+total_orders_per_buyer <- left_join(Count_of_buyers ,number_of_orders_per_buyer, by = "buyer_id") %>%
+  mutate(order_quantity = ifelse(is.na(n), 0, n))
+
+total_orders_per_buyer<- total_orders_per_buyer %>%
+  select(-n)
+
+orders_plot_data <-total_orders_per_buyer %>%
+  group_by(order_quantity) %>%
+  summarise(num_buyers = n_distinct(buyer_id))
+
+# Plot bar graph
+buyers_by_orders_plot <- ggplot(orders_plot_data, aes(x = order_quantity, y = num_buyers)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Number of Buyers by Number of Orders", x = "Number of Orders", y = "Number of Buyers") +
+  theme_minimal()
+
+buyers_by_orders_plot
+
+#9
+#dividing the date and time column to just get date
+
+revenue_per_order <- revenue_per_order %>%
+  separate(date_time, into = c("date", "time"), sep = " ")
+
+#Adding discounts and shipping
+final_balance<- revenue_per_order %>%
+  mutate(
+    discount = ifelse(user_type == "VIP", 0.1, 0),
+    price_after_discount = sum_price * (1 - discount),
+    shipping = case_when(
+      sum_price < 100 & user_type != "VIP" & user_type != "premium" ~ 10,
+      user_type %in% c("premium", "VIP") ~ 0,
+      TRUE ~ NA_real_
+    ),
+    total = price_after_discount + shipping
+  )
+
+average_revenue_after_shipping_discounts <-final_balance %>%
+  summarise(total_revenue = sum(total))
+
+#Finding total revenue after adding the discount and shipping cost
+total_revenue <- sum(final_balance$total, na.rm = TRUE)
+
+
+#10
+#Finding total sales by the user type
 
 Sales_by_user_type <- RSQLite::dbGetQuery(connection, 
                                           "SELECT SUM(b.price) AS revenue, c.user_type
@@ -408,18 +567,17 @@ Sales_by_user_type <- RSQLite::dbGetQuery(connection,
                                       ORDER BY revenue DESC" )
 
 
-  
-library(dplyr)
+
+
+
 
 # Count the occurrences of each product_id
-top_products <- buyer_orders_products %>%
+top_products <- project_buyer_orders_products %>%
   count(product_id, sort = TRUE) %>%
   top_n(10)
 
 # Display the top 10 products sold
 print(top_products)
-
-library(ggplot2)
 
 # Plotting the top 10 products sold
 plot <- ggplot(top_products, aes(x = reorder(product_id, n), y = n)) +
@@ -429,15 +587,32 @@ plot <- ggplot(top_products, aes(x = reorder(product_id, n), y = n)) +
        y = "Count") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
 
-# Define the directory to save the figure
+# Define the directory to save the figures
 figure_directory <- "figures/"
 
 # Create the directory if it doesn't exist
 if (!dir.exists(figure_directory)) {
   dir.create(figure_directory)
 }
+
+# Save each plot as an image
 this_filename_date <- as.character(Sys.Date())
 this_filename_time <- as.character(format(Sys.time(), format = "%H_%M"))
-ggsave(paste0("figures/regression_plot_",
-              this_filename_date,"_",
-              this_filename_time,".png"))
+
+# Save top_10 plot
+ggsave(filename = paste0(figure_directory, "top_10_", this_filename_date, "_", this_filename_time, ".png"), plot = top_10)
+
+# Save revenue_by_categories_plot
+ggsave(filename = paste0(figure_directory, "revenue_by_categories_plot_", this_filename_date, "_", this_filename_time, ".png"), plot = revenue_by_categories_plot)
+
+# Save revenue_by_categories_bar plot
+ggsave(filename = paste0(figure_directory, "revenue_by_categories_bar_", this_filename_date, "_", this_filename_time, ".png"), plot = revenue_by_categories_bar)
+
+# Save top_10_sellers_plot
+ggsave(filename = paste0(figure_directory, "top_10_sellers_plot_", this_filename_date, "_", this_filename_time, ".png"), plot = top_10_sellers_plot)
+
+# Save highest_rev_plot
+ggsave(filename = paste0(figure_directory, "highest_rev_plot_", this_filename_date, "_", this_filename_time, ".png"), plot = highest_rev_plot)
+
+# Save buyers_by_orders_plot
+ggsave(filename = paste0(figure_directory, "buyers_by_orders_plot_", this_filename_date, "_", this_filename_time, ".png"), plot = buyers_by_orders_plot)
