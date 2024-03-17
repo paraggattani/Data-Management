@@ -23,10 +23,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-r-
             
+      - name: Install system dependencies for sf package
+        run: |
+          sudo apt-get install libgdal-dev libgeos-dev libproj-dev
+      - name: Install system dependencies for rnaturalearth package
+        run: |
+          sudo apt-get install libudunits2-dev
+          
       - name: Install packages
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           Rscript -e 'install.packages(c("ggplot2", "dplyr", "readr", "RSQLite", "sf", "rnaturalearth", "rnaturalearthdata"))'
+      
+      - name: Install system dependencies for sf package
+        run: |
+          sudo apt-get install libgdal-dev libgeos-dev libproj-dev
+      - name: Install system dependencies for rnaturalearth package
+        run: |
+          sudo apt-get install libudunits2-dev
+
 
       - name: Execute database update script
         run: |
