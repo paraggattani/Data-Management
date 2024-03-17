@@ -188,20 +188,18 @@ insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_
 
 
 ## Self referencing table for buyer
-insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_products.csv"))
+insert_data("project_references", read_csv("data_upload/references_df.csv"))
+
 
 # Verify the table was created by listing all tables in the database
 #RSQLite::dbListTables(connection)
 
 # Optionally, verify the data was inserted
-products_table <- dbReadTable(connection, "products")
-print(products_table)
+products_table <- dbReadTable(connection, "project_products")
 
-buyer_table <- dbReadTable(connection, "buyer")
-print(buyer_table)
+buyer_table <- dbReadTable(connection, "project_buyer")
 
-<<<<<<< HEAD
-#basic data analysis part
+# Data Analysis
 
 #Average daily sales
 #calculating the average revenue we are earning every day
@@ -291,9 +289,9 @@ Sales_by_user_type <- RSQLite::dbGetQuery(connection,
                                       GROUP BY c.user_type
                                       ORDER BY revenue DESC" )
 
-=======
 
-library(dplyr)
+  
+  library(dplyr)
 
 # Count the occurrences of each product_id
 top_products <- buyer_orders_products_data %>%
@@ -325,6 +323,3 @@ this_filename_time <- as.character(format(Sys.time(), format = "%H_%M"))
 ggsave(paste0("figures/regression_plot_",
               this_filename_date,"_",
               this_filename_time,".png"))
-
-#changes
->>>>>>> 44ac6648e4b2d2ef21c5afd03b058ecaf089d45c

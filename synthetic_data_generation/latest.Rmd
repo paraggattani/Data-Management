@@ -1,0 +1,907 @@
+---
+title: "new"
+author: "Adnan"
+date: "2024-03-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#Function to instal and load required packages
+install_and_load <- function(package) {
+  if (!requireNamespace(package, quietly = TRUE)) {
+    install.packages(package)
+  }
+  library(package, character.only = TRUE)
+}
+
+# List of necessary packages
+packages <- c("dplyr", "lubridate", "stringi", "digest", "randomNames", "readr", "readxl", "curl")
+
+# Install and load necessary libraries
+sapply(packages, install_and_load)
+```
+
+## Category Entity
+```{r}
+# Our reference data is this e-commerce dataset from kaggle: https://www.kaggle.com/datasets/zusmani/pakistans-largest-ecommerce-dataset
+
+
+# Define the categories as per the above dataset (exctracted using excel for easier computing as the file is large)
+
+categories <- c("Appliances", "Beauty & Grooming", "Books", "Computing", 
+                "Entertainment", "Health & Sports", "Home & Living", 
+                "Kids & Baby", "Men's Fashion", "Mobiles & Tablets", 
+                "School & Education", "Superstore", "Women's Fashion")
+# Lets generate primary keys for categories. This key style is replicated for all other entities, starting with the first letter of the entitie, with a random start id manually set, and a 3 digit randomly generated number joined at the end.
+
+num_categories <- length(categories)  # Number of categories
+start_id_cat <- 1912000001  # Starting ID
+set.seed(123)  # Setting seed for reproducibility
+random_digits_cat <- sample(100:999, num_categories, replace = TRUE)  # Generate random three-digit numbers
+
+# Create unique category IDs with random digits
+category_ids <- paste0("C", start_id_cat:(start_id_cat + num_categories - 1), random_digits_cat)
+
+# Create a data frame with category IDs
+categories_df <- data.frame(
+  category_id = category_ids,
+  category_name = categories
+)
+
+categories_df <- categories_df
+```
+
+## Seller Entity
+```{r}
+# Define the number of seller IDs to generate and starting ID
+num_sellers <- 200 # Assuming our company deals with 200 suppliers
+start_id_seller <- 1212000001
+
+# Generate random three-digit numbers for seller IDs
+set.seed(123)
+random_digits_seller <- sample(100:999, num_sellers, replace = TRUE)
+
+# Generate unique seller IDs by combining random digits with starting ID
+seller_ids <- paste0("S", start_id_seller:(start_id_seller + num_sellers - 1), random_digits_seller)
+
+# Define the categories for sellers
+categories <- c("Appliances", "Beauty & Grooming", "Books", "Computing", "Entertainment",
+                "Health & Sports", "Home & Living", "Kids & Baby", "Men's Fashion",
+                "Mobiles & Tablets", "School & Education", "Superstore", "Women's Fashion")
+
+# Define adjectives, nouns, and phrases for seller names and descriptions
+adjectives <- c("Ultimate", "Supreme", "Global", "Innovative", "Reliable", "Trusted", "Eco-friendly", "Dynamic", "Quality", "Premier",
+                "Luxury", "Fantastic", "Special", "Premium", "Advanced", "Modern", "Smart", "Elegant", "Sleek", "Sustainable",
+                "Unique", "Chic", "Stylish", "Vibrant", "Creative", "Dynamic", "Innovative", "Elite", "Dynamic",
+                "Exquisite", "Fashionable", "Flawless", "Fresh", "Glamorous", "Harmonious", "Inspiring", "Majestic", "Opulent",
+                "Perfect", "Prime", "Radiant", "Splendid", "Timeless", "Trendy", "Upscale", "Vintage", "Wholesome")
+
+nouns <- c("Solutions", "Goods", "Depot", "Distributors", "Merchants", "Traders", "Emporium", "Warehouse", "Boutique", "Outfitters",
+           "Collections", "Market", "Stores", "Deals", "Corner", "Hub", "Shops", "Outlet", "Mart", "Spot",
+           "Heaven", "Lab", "Center", "World", "Galaxy", "Palace", "Empire", "Castle", "Fortress", "Nest",
+           "Grove", "Station", "Base", "Haven", "Hive", "Coast", "Bazaar", "Club", "Cave", "Sanctuary",
+           "Arena", "Tower", "Mansion", "Forum", "Place", "Square", "Plaza", "Room", "Territory")
+
+# List of phrases to generate descriptions
+phrases <- c("A seller of a variety of products ranging from: ", 
+             "A seller that deals with: ", 
+             "A seller that provides: ", 
+             "Your destination for finding: ", 
+             "Specializing in: ",
+             "Bringing you the best in: ",
+             "Your one-stop shop for: ",
+             "Discover the world of: ",
+             "Where quality meets: ",
+             "Explore our selection of: ",
+             "Elevating your experience with: ",
+             "Unlocking the potential of: ",
+             "Experience the magic of: ",
+             "Embrace the beauty of: ",
+             "Unleash your passion for: ",
+             "Connecting you to: ",
+             "Where innovation thrives: ",
+             "Fulfilling your needs for: ",
+             "Weaving dreams with: ",
+             "Crafting excellence with: ",
+             "Shaping the future with: ",
+             "Where style meets substance: ",
+             "Transforming lives through: ",
+             "Empowering you with: ",
+             "Inspiring greatness with: ",
+             "Building a world of: ",
+             "Pioneering new frontiers in: ",
+             "Where tradition meets: ",
+             "Where dreams become reality: ",
+             "Where comfort meets: ",
+             "Enabling your journey with: ",
+             "Enhancing your lifestyle with: ",
+             "Curating the best of: ",
+             "Where elegance meets: ",
+             "Where passion meets: ",
+             "Crafting memories with: ",
+             "Where happiness resides in: ",
+             "Setting the standard with: ",
+             "Elevating everyday life with: ",
+             "Where luxury meets: ",
+             "Bringing joy through: ",
+             "Creating wonders with: ",
+             "Nurturing growth with: ",
+             "Where beauty blossoms in: ",
+             "Forging connections through: ",
+             "Unveiling the beauty of: ",
+             "Capturing the essence of: ",
+             "Crafting dreams with: ",
+             "Where adventure awaits in: ",
+             "Discovering treasures in: ",
+             "Finding serenity in: ",
+             "Where elegance reigns in: ",
+             "Crafting experiences with: ",
+             "Crafting a legacy with: ",
+             "Unleashing potential through: ")
+
+# Helper function to generate random string
+generate_random_string <- function(length) {
+  return(paste0(sample(c(letters, LETTERS, 0:9), length, replace = TRUE), collapse = ""))
+}
+
+# Helper function to generate readable name without category
+generate_readable_name <- function() {
+  return(paste(sample(adjectives, 1), sample(nouns, 1)))
+}
+
+# Helper function to generate description
+generate_description <- function(categories) {
+  return(paste(sample(phrases, 1), paste(categories, collapse=', '), "."))
+}
+
+# Helper function to select random categories
+select_categories <- function() {
+  return(sample(categories, sample(1:3, 1)))
+}
+
+# Define the bank names of suppliers (popular banks in the UK)
+bank_names <- c("Natwest", "Barclays", "HSBC", "Santander", "Lloyds")
+
+# Generate random data for 200 sellers
+set.seed(123) # for reproducibility
+
+# Generate seller names without category
+seller_names <- replicate(200, generate_readable_name(), simplify = TRUE)
+
+# Create the dataframe with seller names
+sellers_df <- data.frame(
+  seller_id = seller_ids,
+  seller_name = seller_names,
+  stringsAsFactors = FALSE
+)
+
+
+email_vendors <- c("gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "aol.com")
+
+# Generate random email addresses with popular vendors
+emails_sellers <- paste0(seller_names, "@", sample(email_vendors, 200, replace = TRUE))
+
+# Now, generate the rest of the variables and merge them with the existing dataframe
+sellers_df$url <- sapply(1:200, function(x) paste0("https://www.", gsub(" ", "", seller_names[x]), generate_random_string(3), ".com"))
+sellers_df$categories <- replicate(200, select_categories(), simplify = TRUE)
+sellers_df$description <- mapply(generate_description, sellers_df$categories)
+sellers_df$email <- emails_sellers
+sellers_df$password <- sapply(1:200, function(x) digest(generate_random_string(8), algo = "sha256"))
+sellers_df$account_number <- sapply(1:200, function(x) paste0(sample(0:9, 8, replace = TRUE), collapse = ""))
+sellers_df$bank_name <- sample(bank_names, 200, replace = TRUE)
+
+# View the first few rows of the sellers dataframe
+head(sellers_df)
+
+
+```
+
+## Buyer and Contact Entities
+```{r}
+# Define the number of buyer IDs to generate and starting ID
+num_buyers <- 800
+start_id_buyer <- 1312000001
+
+# Generate random three-digit numbers for buyer IDs
+set.seed(123)  # Ensuring reproducibility
+random_digits_buyer <- sample(100:999, num_buyers, replace = TRUE)
+
+# Generate unique buyer IDs by combining random digits with starting ID
+buyer_ids <- paste0("B", start_id_buyer:(start_id_buyer + num_buyers - 1), random_digits_buyer)
+
+
+# Load necessary package to generate names
+#install.packages("babynames")
+library(babynames)
+
+# Generate 1000 unique first names
+first_names <- character(0)
+while (length(first_names) < 800) {
+  first_names <- unique(c(first_names, sample(babynames::babynames$name, 800, replace = TRUE)))
+}
+first_names <- head(first_names, 800)
+
+# Generate 1000 unique last names
+last_names <- character(0)
+while (length(last_names) < 800) {
+  last_names <- unique(c(last_names, sample(babynames::babynames$name, 1000, replace = TRUE)))
+}
+last_names <- head(last_names, 800)
+
+# Create a dataframe with first and last names
+names_df <- data.frame(
+  first_name = first_names,
+  last_name = last_names
+)
+
+# Display the first few rows of the dataframe
+head(names_df)
+
+
+
+# Define the popular email vendors
+email_vendors <- c("gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "aol.com")
+
+# Generate random email addresses with popular vendors
+emails <- paste0(first_names, ".", last_names, "@", sample(email_vendors, 800, replace = TRUE))
+
+# Define a function to hash passwords
+hash_password <- function(password) {
+  hashed <- openssl::sha256(password)
+  return(hashed)
+}
+
+# Generate random passwords
+passwords <- sapply(1:800, function(x) {
+  random_password <- paste0(sample(c(letters, LETTERS, 0:9), 800, replace = TRUE), collapse = "")
+  hash_password(random_password)
+})
+
+# Generate random user types
+user_types <- sample(c("Basic", "Premium", "VIP"), 800, replace = TRUE)
+
+# Generate random expiry dates (for demonstration purpose, let's assume expiry date is 1 year from current date)
+expiry_dates <- as.Date(Sys.Date()) + sample(365, 800, replace = TRUE)
+
+# Create a dataframe with all the details
+buyer_df <- data.frame(
+  buyer_id = buyer_ids,
+  first_name = first_names,
+  last_name = last_names,
+  email = emails,
+  password = passwords,
+  user_type = user_types,
+  expiry_date = expiry_dates
+)
+
+# Display the first few rows of the dataframe
+head(buyer_df)
+
+buyer_df$buyer_id
+
+
+# Since buyer has a 1:N relationship with addresses, lets add the contact details to the buyer table
+
+# Read the data created with mockaroo
+contact_df <- read_csv("contact_detail.csv")
+
+# Lets assume the buyer has 1 address each in this case. 
+
+# Lets format the address id to our standardized format.
+
+# Define the number of address IDs to generate and starting ID
+num_addresses <- 1000
+start_id_address <- 1118000001
+
+# Generate random three-digit numbers
+set.seed(123)  # Ensuring reproducibility
+random_digits_address <- sample(100:999, num_addresses, replace = TRUE)
+
+# Generate unique address IDs with random digits
+address_ids <- paste0("A", start_id_address:(start_id_address + num_addresses - 1), random_digits_address)
+
+
+contact_df$address_id<- address_ids
+# The Address column doesnt seem to have appropriate PO box values. Lets generate 1000 random PO BOX values with r and replace the data in contact_df
+
+# Chat GPT Prompt response:
+# Function to generate a PO box number with the specified format
+
+generate_po_box_number <- function(city) {
+  first_letter <- substr(city, 1, 1)
+  po_box_number <- paste0(first_letter, paste0(sample(LETTERS, 2, replace=TRUE), collapse=""), sample(0:9, 1, replace=TRUE), paste0(sample(LETTERS, 2, replace=TRUE), collapse=""))
+  return(po_box_number)
+}
+
+# Generate unique UK-style PO box numbers for each city in contact_df
+uk_po_box_numbers <- character(nrow(contact_df))
+
+for (i in 1:nrow(contact_df)) {
+  city <- contact_df$city[i]
+  new_po_box_number <- generate_po_box_number(city)
+  uk_po_box_numbers[i] <- new_po_box_number
+}
+
+# Replace existing addresses in contact_df$address with just the PO box number
+contact_df$address <- uk_po_box_numbers
+
+# Lets clean the city values 
+# Remove asterisks (*) from city names
+contact_df$city <- gsub("\\*", "", contact_df$city)
+
+# CARDINALITY CHECK
+
+
+# Lets drop the email column as we already have email in buyer_df
+contact_df$email <- NULL
+
+# Assuming you have contact_df with 1000 contacts and buyer_df with 800 buyers
+
+# Create a column in contact_df to store buyer IDs
+contact_df$buyer_id <- NA
+
+# Shuffle the order of contacts to ensure randomness
+contact_df <- contact_df[sample(nrow(contact_df)), ]
+
+# Initialize a counter to keep track of the number of contacts assigned to each buyer
+buyer_contact_count <- rep(0, nrow(buyer_df))
+
+# Assign contacts to buyers
+for (i in 1:nrow(contact_df)) {
+  # Find a buyer who has less than 2 contacts assigned
+  eligible_buyers <- which(buyer_contact_count < 2)
+  
+  if (length(eligible_buyers) == 0) {
+    # If all eligible buyers already have 2 contacts, break the loop
+    break
+  }
+  
+  # Choose a random eligible buyer
+  chosen_buyer <- sample(eligible_buyers, 1)
+  
+  # Assign the contact to the chosen buyer
+  contact_df$buyer_id[i] <- buyer_df$buyer_id[chosen_buyer]
+  
+  # Increment the contact count for the chosen buyer
+  buyer_contact_count[chosen_buyer] <- buyer_contact_count[chosen_buyer] + 1
+}
+
+# Display the resulting contact_df
+head(contact_df)
+
+
+# Now lets add the address type to the contact_df, assuming the buyer can set the address as work or home.
+
+
+# Add address_type column to contact_df with default value NA
+contact_df$address_type <- NA
+
+# Group contact_df by buyer_id and sample one address type for each group
+contact_df <- contact_df %>%
+  group_by(buyer_id) %>%
+  mutate(address_type = sample(c("Home", "Work"), 1)) %>%
+  ungroup()  # Ungroup the dataframe
+
+# Display the first few rows of contact_df
+head(contact_df)
+
+```
+
+
+## Products Entity
+
+```{r}
+# Define the number of product IDs to generate and starting ID
+num_products <- 500
+start_id_product <- 1812000001
+
+# Generate random three-digit numbers for product IDs
+set.seed(123)  # Ensuring reproducibility
+random_digits_product <- sample(100:999, num_products, replace = TRUE)
+
+# Generate unique product IDs by combining random digits with starting ID
+product_ids <- paste0("P", start_id_product:(start_id_product + num_products - 1), random_digits_product)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Adjectives and nouns for product names
+adjectives <- c("Sleek", "Modern", "Stylish", "Efficient", "Durable", "Compact", "Innovative",
+                "Elegant", "Powerful", "Versatile", "Premium", "High-Quality", "Portable",
+                "Sophisticated", "Advanced", "User-Friendly", "Comfortable", "Reliable",
+                "Futuristic", "Eco-Friendly", "Luxurious", "Affordable", "Sleek", "Gorgeous",
+                "Practical", "Sustainable", "Chic", "Flexible", "Compact", "Robust", "Sleek",
+                "Fashionable", "Ergonomic", "Dynamic", "Sleek", "Innovative", "High-Performance",
+                "Fashionable", "Trendy", "Fashionable", "Sleek", "Stylish", "Fashionable",
+                "Elegant", "Dynamic", "Stylish", "Elegant", "Eco-Friendly")
+
+nouns <- c("Refrigerator", "Smartphone", "Television", "Dress", "Laptop", "Shirt", "Speaker",
+           "Vacuum Cleaner", "Perfume", "Couch", "Toy", "Yoga Mat", "Notebook", "Washing Machine",
+           "Tablet", "Makeup Kit", "Curtains", "Baby Stroller", "Running Shoes", "Calculator",
+           "Backpack", "Cookware Set", "Luggage", "Sneakers", "Headphones", "Jacket", "Printer",
+           "Face Cream", "Bed", "Baby Monitor", "Gym Equipment", "Desk", "Gaming Console",
+           "Handbag", "Smartwatch", "Air Purifier", "Dining Table", "Sunglasses", "Razor",
+           "Blender", "Earphones", "Mattress", "Baby Carrier", "Fitness Tracker", "Alarm Clock",
+           "Hand Mixer", "Pillow")
+
+# Generate product names based on categories
+total_products <- 500
+
+# Sample data
+data <- tibble(
+  product_id = product_ids,
+  product_name = paste(sample(adjectives, total_products, replace = TRUE), 
+                       sample(nouns, total_products, replace = TRUE), sep = ' ')
+)
+
+
+# View the first few rows of updated data
+head(data)
+
+# Generate "in stock" column
+data <- data %>%
+  mutate(in_stock = sample(c("yes", "no"), total_products, replace = TRUE, prob = c(0.9, 0.1)))
+
+# View the first few rows of updated data
+head(data)
+
+# Generate "available_units" column
+data <- data %>%
+  mutate(available_units = ifelse(in_stock == "yes", 
+                                  ifelse(runif(total_products) <= 0.9, sample(1:500, total_products, replace = TRUE), 0), 
+                                  0))
+
+# View the first few rows of updated data
+head(data)
+
+
+# Categories and their nouns
+category_nouns <- list(
+  "Appliances" = c("Refrigerator", "Vacuum Cleaner", "Blender", "Washing Machine", "Air Purifier", "Hand Mixer"),
+  "Mobiles & Tablets" = c("Smartphone", "Tablet", "Smartwatch"),
+  "Entertainment" = c("Television", "Speaker", "Gaming Console", "Headphones", "Earphones"),
+  "Women's Fashion" = c("Dress", "Shirt", "Handbag", "Sunglasses"),
+  "Computing" = c("Laptop", "Notebook", "Printer"),
+  "Men's Fashion" = c("Shirt", "Jacket", "Sneakers", "Backpack"),
+  "Beauty & Grooming" = c("Perfume", "Makeup Kit", "Face Cream", "Razor"),
+  "Home & Living" = c("Curtains", "Couch", "Table", "Bed", "Dining Table", "Luggage", "Mattress", "Cookware Set", "Desk", "Alarm Clock", "Pillow"),
+  "Kids & Baby" = c("Toy", "Baby Stroller", "Baby Monitor", "Baby Carrier"),
+  "Health & Sports" = c("Running Shoes", "Yoga Mat", "Fitness Tracker", "Gym Equipment"),
+  "School & Education" = c("Notebook", "Calculator")
+)
+
+
+# Initialize the category column as an empty character vector
+data$category <- ""
+
+# Iterate over each product name to find its category
+for (category in names(category_nouns)) {
+  for (noun in category_nouns[[category]]) {
+    # Check if the product name contains the current noun
+    data$category <- ifelse(grepl(noun, data$product_name), category, data$category)
+  }
+}
+
+
+# View the first few rows of updated data
+head(data)
+
+# Lets add the prices using the following information
+
+# Categories and their average prices
+category_prices <- c(
+  "Appliances" = 31.41600882,
+  "Beauty & Grooming" = 2.498201959,
+  "Books" = 1.373836291,
+  "Computing" = 30.92282575,
+  "Entertainment" = 54.70450929,
+  "Health & Sports" = 2.897034883,
+  "Home & Living" = 3.212621698,
+  "Kids & Baby" = 1.911669386,
+  "Men's Fashion" = 2.578544381,
+  "Mobiles & Tablets" = 49.84310222,
+  "Others" = 6.320278129,
+  "School & Education" = 1.369733365,
+  "Superstore" = 1.735174642,
+  "Women's Fashion" = 4.9945859
+)
+
+# Standard deviations
+category_sds <- c(
+  "Appliances" = 46.54876515,
+  "Beauty & Grooming" = 14.73695907,
+  "Books" = 2.718771321,
+  "Computing" = 63.91331249,
+  "Entertainment" = 44.11546453,
+  "Health & Sports" = 8.802015502,
+  "Home & Living" = 10.64148368,
+  "Kids & Baby" = 3.659686158,
+  "Men's Fashion" = 4.520548744,
+  "Mobiles & Tablets" = 68.74049874,
+  "Others" = 6.320278129,
+  "School & Education" = 4.696750915,
+  "Superstore" = 8.400568579,
+  "Women's Fashion" = 5.556773175
+)
+# Function to generate random price based on category mean with random percentage increase/decrease
+generate_price <- function(category) {
+  mean_price <- category_prices[category]
+  # Generate random percentage increase/decrease within the range of -30% to 30%
+  percentage_change <- runif(1, -0.3, 0.3)
+  # Calculate the new price with the percentage change
+  price <- mean_price * (1 + percentage_change)
+  return(price)
+}
+
+# Add price column to data
+data <- data %>%
+  mutate(price = mapply(generate_price, category))
+
+# View the first few rows of updated data
+head(data)
+
+
+# Function to round price to the nearest 0.99
+round_to_nearest_99 <- function(price) {
+  rounded_price <- round(price - 0.01) + 0.99
+  return(rounded_price)
+}
+
+# Function to generate random price based on category mean with random percentage increase/decrease, rounded to the nearest 0.99
+generate_price <- function(category) {
+  mean_price <- category_prices[category]
+  # Generate random percentage increase/decrease within the range of -30% to 30%
+  percentage_change <- runif(1, -0.3, 0.3)
+  # Calculate the new price with the percentage change
+  price <- mean_price * (1 + percentage_change)
+  # Round the price to the nearest 0.99
+  rounded_price <- round_to_nearest_99(price)
+  return(rounded_price)
+}
+
+# Add price column to data
+data <- data %>%
+  mutate(price = mapply(generate_price, category))
+
+# We just need the category_id to represent the 1:N relationship between product and category.
+merged_data <- merge(data, categories_df, by.x = "category", by.y = "category_name", all.x = TRUE)
+
+# Lets also assign sellers to products
+# Function to randomly assign a seller_id to data based on matching categories
+assign_seller_id <- function(data, sellers_df) {
+  for (i in 1:nrow(data)) {
+    matching_sellers <- sellers_df$seller_id[sellers_df$categories %in% data$category[i]]
+    if (length(matching_sellers) > 0) {
+      data$seller_id[i] <- sample(matching_sellers, 1)
+    } else {
+      data$seller_id[i] <- NA
+    }
+  }
+  return(data)
+}
+
+
+#CARDINALITY CHECK
+# Call the function to assign seller_id to data
+data <- assign_seller_id(data, sellers_df)
+
+# NOW we can remove categories from the sellers dataset to ensure atomicity.
+sellers_df$categories<- NULL
+
+# Merge products_df with categories_df based on matching category names
+merged_df <- merge(data, categories_df, by.x = "category", by.y = "category_name", all.x = TRUE)
+
+# Drop the original category column
+merged_df$category <- NULL
+# View the updated dataframe
+
+products_df<-merged_df
+
+
+
+```
+
+
+# Buyer Orders Products Relationship
+
+## Part 1: Creating a list of orders
+
+```{r}
+# To create an M:N buyer orders products relationship, we first need a data that containts the list of orders, with the products and quantity ordered by each buyer.
+
+
+# Define the number of order IDs to generate and starting ID
+num_orders <- 1000
+start_id_order <- 50001
+
+# Generate random three-digit numbers for unique order IDs
+set.seed(123)  # Setting seed for reproducibility
+random_digits_order <- sample(100:999, num_orders, replace = TRUE)
+
+# Generate unique order IDs with random digits
+order_ids <- paste0("O", start_id_order:(start_id_order + num_orders - 1), random_digits_order)
+
+# Display the first few order IDs
+head(order_ids)
+
+# Create sample order data
+orders <- data.frame(
+  order_id = order_ids,
+  order_date = as.POSIXct(sample(seq(as.POSIXct('2022-09-01'), as.POSIXct('2022-09-30'), by = "day"), 1000, replace = TRUE) + runif(1000) * 86400),
+  order_status = sample(c("Delivered", "Cancelled", "Returned"), 1000, replace = TRUE, prob = c(0.6, 0.35, 0.05)),
+  payment_type = sample(c("Card", "Cash"), 1000, replace = TRUE)
+)
+
+
+# Display the first few rows of the dataset
+head(orders)
+
+
+  
+# Assigning buyer IDs to orders
+  
+# Sample 30% of the buyer IDs to represent repeat buyers
+repeat_buyer_ids <- sample(buyer_df$buyer_id, size = 0.3 * length(buyer_df$buyer_id), replace = TRUE)
+
+# Assign buyer IDs to each order randomly, with 30% of orders being from repeat buyers
+orders$buyer_id <- sample(c(buyer_df$buyer_id, repeat_buyer_ids), size = nrow(orders), replace = TRUE)
+
+# Display the first few rows of the orders data frame with buyer IDs assigned
+head(orders)
+
+
+# Assigning products to orders
+
+# Define the maximum number of products per order and average number of product IDs
+max_products <- 15
+average_products <- 3
+
+# Filter products available in stock, so we our system doesnt place orders when inventory is 0.
+products_df_instock <- products_df %>% filter(available_units > 20)
+
+# Function to generate a list of product IDs for each order
+generate_product_list <- function() {
+  num_products <- rpois(1, lambda = average_products)
+  if(num_products > max_products) num_products <- max_products
+  product_list <- sample(products_df_instock$product_id, size = num_products, replace = TRUE)
+  return(product_list)
+}
+
+# Apply the function to each row of the orders data frame to create the products_ordered column
+orders$products_ordered <- lapply(1:nrow(orders), function(x) generate_product_list())
+
+# Display the first few rows of the orders data frame with products_ordered column
+head(orders)
+
+
+# We also need to make sure that the order contains the address the buyer selected as the delivery location. so we sample an address id which belongs to a buyer id (as a buyer can have more than 1 address)
+
+# Add a new column to orders dataframe with sampled address type
+orders <- orders %>%
+  mutate(address_type = sample(c("Home", "Work"), size = nrow(.), replace = TRUE))
+```
+
+## Part 2: Assigning products to orders.
+```{r}
+
+# Extract relevant columns from the 'products_df' table
+normalized_product_data <- products_df[c("product_id", "product_name", "price", "in_stock", "available_units", "category_id", "seller_id")]
+
+# Initialize a list to store matched product IDs for each order
+matched_products <- list()
+
+# Iterate over each row of the orders data frame
+for (i in 1:nrow(orders)) {
+  # Extract product IDs for the current order
+  product_ids <- orders$products_ordered[[i]]
+  
+  # Check if product IDs are empty
+  if (length(product_ids) > 0) {
+    # Store the product IDs for the current order
+    matched_products[[i]] <- data.frame(order_id = rep(orders$order_id[i], length(product_ids)), product_id = product_ids)
+  }
+}
+
+# Combine matched product IDs into a single data frame
+matched_products_df <- do.call(rbind, matched_products)
+
+# Merge normalized product data with original product data based on product_id
+merged_data <- merge(matched_products_df, products_df, by = "product_id")
+
+# View the merged data
+head(merged_data)
+
+```
+
+## Normalised form for buyer-order-products
+```{r}
+# Merge the merged product data with the orders data based on order_id
+
+buyer_orders_products <- merge(merged_data, orders, by = "order_id")
+
+
+
+# Sort by order date
+buyer_orders_products <- buyer_orders_products[order(buyer_orders_products$order_date), ]
+
+# Initialize a new column for remaining available units
+buyer_orders_products$remaining_available_units <- NA
+
+# Initialize the quantity_ordered column in buyer_orders_products dataframe
+buyer_orders_products$quantity_ordered <- NA
+
+# Update available_units after each order
+for (i in 1:nrow(buyer_orders_products)) {
+  product_id <- buyer_orders_products$product_id[i]
+  quantity_ordered <- NA  # Initialize quantity_ordered
+  
+  # Determine the quantity_ordered
+  if (runif(1) <= 0.9) {
+    quantity_ordered <- 1
+  } else if (runif(1) <= 0.05) {
+    quantity_ordered <- sample(2:5, 1)
+  }
+  
+  # Ensure quantity_ordered is at least 1
+  if (is.na(quantity_ordered) || quantity_ordered < 1) {
+    quantity_ordered <- 1
+  }
+  
+  # Update the quantity_ordered column
+  buyer_orders_products$quantity_ordered[i] <- quantity_ordered
+  
+  # Update available_units in products_df
+  row_index <- which(products_df$product_id == product_id)
+  if (length(row_index) > 0) {
+    products_df$available_units[row_index] <- products_df$available_units[row_index] - quantity_ordered
+    products_df$available_units[row_index] <- max(products_df$available_units[row_index], 0)
+    buyer_orders_products$remaining_available_units[i] <- products_df$available_units[row_index]
+  } else {
+    # Handle the case where product_id is not found in products_df
+    # Print a warning message or take appropriate action
+    warning(paste("Product ID", product_id, "not found in products_df"))
+  }
+}
+
+
+# Drop the available_units column
+buyer_orders_products <- buyer_orders_products[, !(names(buyer_orders_products) %in% c("available_units"))]
+
+# Display the first few rows of updated data
+head(buyer_orders_products)
+
+
+
+# Select relevant columns
+buyer_orders_products <- buyer_orders_products %>%
+  select(
+    product_id,
+    quantity_ordered,
+    order_date,
+    order_status,
+    payment_type,
+    buyer_id,
+    address_type
+  )
+
+```
+
+
+
+# Review Entity
+```{r}
+#Dataset of reviews
+review_df <- read_csv("review.csv")
+
+#lets first make the review id standardized.
+
+# Define the number of review IDs to generate and starting ID
+num_reviews <- nrow(review_df)
+start_id_review <- 1771000001
+
+# Generate random three-digit numbers
+set.seed(123)  # Setting seed for reproducibility
+random_digits <- sample(100:999, num_reviews, replace = TRUE)
+
+# Generate unique review IDs with random digits
+review_ids <- paste0("R", start_id_review:(start_id_review + num_reviews - 1), random_digits)
+review_df$review_id<- review_ids
+
+#Since reviews can only be placed on orders that were not cancelled (i.e, orders that were delivered or returned), we filter the data as follows:
+
+non_cancelled_orders <- buyer_orders_products %>% filter(order_status != "Cancelled")
+
+# assign product id and buyer id as foreign keys in the reviews table. Lets also replace the review dates
+sampled_pairs <- non_cancelled_orders[sample(nrow(buyer_orders_products), nrow(review_df), replace = FALSE), c("product_id", "buyer_id", "order_status", "order_date")]
+
+review_df$product_id <- sampled_pairs$product_id
+review_df$buyer_id<- sampled_pairs$buyer_id
+
+#Lets replace the review dates, as the same day of delivery, assuming people review once they get the product.
+
+# Generate a random number of days between 0 and 7
+random_days <- sample(0:7, nrow(sampled_pairs), replace = TRUE)
+
+# Add the random number of days to the order_date
+review_date <- sampled_pairs$order_date + random_days
+
+# Assign the result to the review_date column in review_df
+review_df$review_date <- review_date
+
+# Lets drop the NA's
+
+review_df <- na.omit(review_df)
+
+```
+
+## Self Referencing on Buyer Entity
+
+```{r}
+
+# Sample 60% of the buyer_id values
+references <- sample(buyer_df$buyer_id, 0.6*nrow(buyer_df), replace = TRUE)
+
+# Randomly assign values to buyer_df$buyer_id for the selected 60%
+buyer_df$referred_by <- ifelse(buyer_df$buyer_id %in% references, NA, references)
+
+# Create new table with buyer_df and referred_by 
+
+references_df <- buyer_df %>% select(buyer_id, referred_by) %>% na.omit()
+
+buyer_df$referred_by <- NULL
+
+```
+
+
+```{r}
+
+#The following data has to be checked for quality issues, and 
+
+#Dataset of buyers
+head(buyer_df)
+
+#Dataset of suppliers
+head(sellers_df)
+
+sellers_df <- sellers_df %>%
+  distinct(email, .keep_all = TRUE)
+
+# Dataset of products
+head(products_df)
+
+#Dataset of categories
+head(categories_df)
+
+#Dataset of products ordered by each customer
+head(buyer_orders_products)
+
+#Dataset of contact details
+head(contact_df) 
+
+#Dataset of reviews
+head(review_df)
+
+# References table
+head(references_df)
+
+
+```
+
+
+```{r}
+#converting dataframes to csv files
+# Extract each data frame to a CSV file with the same name
+write.csv(products_df, file = "../data_upload/products_df.csv", row.names = FALSE)
+write.csv(sellers_df, file = "../data_upload/sellers_df.csv", row.names = FALSE)
+write.csv(categories_df, file = "../data_upload/categories_df.csv", row.names = FALSE)
+write.csv(buyer_df, file = "../data_upload/buyer_df.csv", row.names = FALSE)
+write.csv(contact_df, file = "../data_upload/contact_df.csv", row.names = FALSE)
+write.csv(review_df, file = "../data_upload/review_df.csv", row.names = FALSE)
+write.csv(references_df, file = "../data_upload/references_df.csv", row.names = FALSE)
+write.csv(buyer_orders_products, file = "../data_upload/buyer_orders_products.csv", row.names = FALSE)
+```
