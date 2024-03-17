@@ -467,7 +467,7 @@ revenue_by_city <- ggplot(sales_by_city, aes(x = city, y = 1, size = revenue)) +
 
 #adding it to "figures folder"
 # Save the plot as an image to another directory
-ggsave(filename = "../figures/your_plot_name.png", plot = revenue_by_city)
+ggsave(filename = "figures/your_plot_name.png", plot = revenue_by_city)
 
 Sales_by_user_type <- RSQLite::dbGetQuery(connection, 
                                           "SELECT SUM(b.price) AS revenue, c.user_type
@@ -479,10 +479,10 @@ Sales_by_user_type <- RSQLite::dbGetQuery(connection,
 
 
   
-  library(dplyr)
+library(dplyr)
 
 # Count the occurrences of each product_id
-top_products <- buyer_orders_products_data %>%
+top_products <- buyer_orders_products %>%
   count(product_id, sort = TRUE) %>%
   top_n(10)
 
