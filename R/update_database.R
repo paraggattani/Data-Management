@@ -191,7 +191,7 @@ insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_
 insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_products.csv"))
 
 # Verify the table was created by listing all tables in the database
-RSQLite::dbListTables(connection)
+#RSQLite::dbListTables(connection)
 
 # Optionally, verify the data was inserted
 products_table <- dbReadTable(connection, "products")
@@ -200,6 +200,7 @@ print(products_table)
 buyer_table <- dbReadTable(connection, "buyer")
 print(buyer_table)
 
+<<<<<<< HEAD
 #basic data analysis part
 
 #Average daily sales
@@ -290,3 +291,40 @@ Sales_by_user_type <- RSQLite::dbGetQuery(connection,
                                       GROUP BY c.user_type
                                       ORDER BY revenue DESC" )
 
+=======
+
+library(dplyr)
+
+# Count the occurrences of each product_id
+top_products <- buyer_orders_products_data %>%
+  count(product_id, sort = TRUE) %>%
+  top_n(10)
+
+# Display the top 10 products sold
+print(top_products)
+
+library(ggplot2)
+
+# Plotting the top 10 products sold
+plot <- ggplot(top_products, aes(x = reorder(product_id, n), y = n)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Top 10 Products Sold",
+       x = "Product ID",
+       y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+
+# Define the directory to save the figure
+figure_directory <- "figures/"
+
+# Create the directory if it doesn't exist
+if (!dir.exists(figure_directory)) {
+  dir.create(figure_directory)
+}
+this_filename_date <- as.character(Sys.Date())
+this_filename_time <- as.character(format(Sys.time(), format = "%H_%M"))
+ggsave(paste0("figures/regression_plot_",
+              this_filename_date,"_",
+              this_filename_time,".png"))
+
+#changes
+>>>>>>> 44ac6648e4b2d2ef21c5afd03b058ecaf089d45c
