@@ -146,8 +146,196 @@ for (csv_file in csv_files) {
 print(names(all_data_frames))
 
 # Data Validation
+# Function to validate phone numbers
+validate_phone_number <- function(phone_number) {
+  # Check if the length is 10 and starts with 7
+  if (nchar(phone_number) != 10 || substr(phone_number, 1, 1) != "7") {
+    return(FALSE)
+  }
+  # Check if all characters are numeric
+  if (!grepl("^[0-9]+$", phone_number)) {
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
+# Function to validate first and last names
+validate_name <- function(name) {
+  # Check if the length is less than 25 characters
+  if (nchar(name) > 25) {
+    return(FALSE)
+  }
+  # Check if only alphabets are present
+  if (!grepl("^[A-Za-z]+$", name)) {
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
+# Function to validate address
+validate_address <- function(address) {
+  # Check if the length is 6 characters
+  if (nchar(address) != 6) {
+    return(FALSE)
+  }
+  # Check if address consists of only alphanumeric characters
+  if (!grepl("^[A-Za-z0-9]+$", address)) {
+    return(FALSE)
+  }
+  return(TRUE)
+}
 
 
+# Load necessary libraries
+library(readr)
+
+# Read the contact dataframe
+contact_df <- read_csv("../data_upload/contact_df.csv")
+
+# Validate phone numbers
+valid_phone <- sapply(contact_df$phone_number, validate_phone_number)
+
+# Validate addresses
+valid_address <- sapply(contact_df$address, validate_address)
+
+# Check for invalid phone numbers and addresses
+invalid_phone_numbers <- contact_df$phone_number[!valid_phone]
+invalid_addresses <- contact_df$address[!valid_address]
+
+# If there are any invalid entries, remove them
+if (length(invalid_phone_numbers) > 0) {
+  cat("Invalid phone numbers:", invalid_phone_numbers, "\n")
+  contact_df <- contact_df[valid_phone, ]
+}
+
+if (length(invalid_addresses) > 0) {
+  cat("Invalid addresses:", invalid_addresses, "\n")
+  contact_df <- contact_df[valid_address, ]
+}
+
+# Remove duplicate rows based on email IDs in buyer_df
+buyer_df <- distinct(buyer_df, email, .keep_all = TRUE)
+
+# Remove duplicate rows based on email IDs in sellers_df
+sellers_df <- distinct(sellers_df, email, .keep_all = TRUE)
+
+# Load necessary libraries
+library(dplyr)
+
+# Read CSV files into data frames
+products_df <- read.csv("../data_upload/products_df.csv")
+sellers_df <- read.csv("../data_upload/sellers_df.csv")
+categories_df <- read.csv("../data_upload/categories_df.csv")
+buyer_df <- read.csv("../data_upload/buyer_df.csv")
+contact_df <- read.csv("../data_upload/contact_df.csv")
+review_df <- read.csv("../data_upload/review_df.csv")
+references_df <- read.csv("../data_upload/references_df.csv")
+buyer_orders_products <- read.csv("../data_upload/buyer_orders_products.csv")
+
+# Ensure referential integrity between tables
+
+# Ensure category_id in products_df exists in categories_df
+if (any(!products_df$category_id %in% categories_df$category_id)) {
+  stop("Foreign key violation: category_id in products_df does not exist in categories_df")
+}
+
+# Ensure buyer_id in contact_df exists in buyer_df
+if (any(!contact_df$buyer_id %in% buyer_df$buyer_id)) {
+  stop("Foreign key violation: buyer_id in contact_df does not exist in buyer_df")
+}
+
+# Ensure buyer_id in review_df exists in buyer_df
+if (any(!review_df$buyer_id %in% buyer_df$buyer_id)) {
+  stop("Foreign key violation: buyer_id in review_df does not exist in buyer_df")
+}
+
+# Ensure product_id in review_df exists in products_df
+if (any(!review_df$product_id %in% products_df$product_id)) {
+  stop("Foreign key violation: product_id in review_df does not exist in products_df")
+}
+
+# Ensure buyer_id and product_id in buyer_orders_products exist in buyer_df and products_df respectively
+if (any(!buyer_orders_products$buyer_id %in% buyer_df$buyer_id) ||
+    any(!buyer_orders_products$product_id %in% products_df$product_id)) {
+  stop("Foreign key violation: buyer_id or product_id in buyer_orders_products do not exist in buyer_df or products_df")
+}
+
+# Ensure buyer_id and referred_by in references_df exist in buyer_df
+if (any(!references_df$buyer_id %in% buyer_df$buyer_id) ||
+    any(!references_df$referred_by %in% buyer_df$buyer_id)) {
+  stop("Foreign key violation: buyer_id or referred_by in references_df do not exist in buyer_df")
+}
+
+# IF a new file is added to the data_upload folder it will create a table for it.
+# Function to extract table name from file name
+get_table_name <- function(file_name) {
+  # Remove file extension
+  table_name <- tools::file_path_sans_ext(file_name)
+  # Prepend "project_" to table name
+  table_name <- paste0("project_", table_name)
+  return(table_name)
+}
+
+# Check for new CSV files in data_upload folder
+csv_files <- list.files(path = "data_upload", pattern = "\\.csv$", full.names = TRUE)
+
+# Create a list to store data frames
+new_data_frames <- list()
+
+# Loop through each CSV file
+for (csv_file in csv_files) {
+  # Extract file name
+  file_name <- basename(csv_file)
+  # Check if a table already exists for this CSV file
+  table_name <- get_table_name(file_name)
+  if (!(table_name %in% dbListTables(connection))) {
+    # If table doesn't exist, create a new data frame
+    new_data_frame <- read.csv(csv_file)
+    # Add the data frame to the list with the file name as key
+    new_data_frames[[file_name]] <- new_data_frame
+    # Create a new table in the database
+    dbWriteTable(connection, table_name, new_data_frame, row.names = FALSE)
+    cat("Table", table_name, "created and data inserted.\n")
+  } else {
+    cat("Table", table_name, "already exists.\n")
+  }
+}
+
+# Function to extract table name from file name
+get_table_name <- function(file_name) {
+  # Remove file extension
+  table_name <- tools::file_path_sans_ext(file_name)
+  # Prepend "project_" to table name
+  table_name <- paste0("project_", table_name)
+  return(table_name)
+}
+
+# Check for new CSV files in data_upload folder
+csv_files <- list.files(path = "data_upload", pattern = "\\.csv$", full.names = TRUE)
+
+# Create a list to store data frames
+new_data_frames <- list()
+
+# Loop through each CSV file
+for (csv_file in csv_files) {
+  # Extract file name
+  file_name <- basename(csv_file)
+  # Check if a table already exists for this CSV file
+  table_name <- get_table_name(file_name)
+  if (!(table_name %in% dbListTables(connection))) {
+    # If table doesn't exist, create a new data frame
+    new_data_frame <- read.csv(csv_file)
+    # Add the data frame to the list with the file name as key
+    new_data_frames[[file_name]] <- new_data_frame
+    # Create a new table in the database
+    dbWriteTable(connection, table_name, new_data_frame, row.names = FALSE)
+    cat("Table", table_name, "created and data inserted.\n")
+  } else {
+    cat("Table", table_name, "already exists.\n")
+  }
+}
+
+# Check for new data if available in the datasets.
 # Function to check if data exists in a table
 data_exists <- function(table_name) {
   query <- paste0("SELECT COUNT(*) FROM ", table_name)
