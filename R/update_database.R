@@ -8,6 +8,8 @@ library(rnaturalearth)
 library(ggplot2)
 library(rnaturalearthdata)
 
+#no_changes required
+
 # Create a database connection
 connection <- RSQLite::dbConnect(RSQLite::SQLite(),"database/group32.db")
 
