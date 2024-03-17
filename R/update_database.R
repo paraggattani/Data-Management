@@ -266,75 +266,6 @@ if (any(!references_df$buyer_id %in% buyer_df$buyer_id) ||
   stop("Foreign key violation: buyer_id or referred_by in references_df do not exist in buyer_df")
 }
 
-# IF a new file is added to the data_upload folder it will create a table for it.
-# Function to extract table name from file name
-get_table_name <- function(file_name) {
-  # Remove file extension
-  table_name <- tools::file_path_sans_ext(file_name)
-  # Prepend "project_" to table name
-  table_name <- paste0("project_", table_name)
-  return(table_name)
-}
-
-# Check for new CSV files in data_upload folder
-csv_files <- list.files(path = "data_upload", pattern = "\\.csv$", full.names = TRUE)
-
-# Create a list to store data frames
-new_data_frames <- list()
-
-# Loop through each CSV file
-for (csv_file in csv_files) {
-  # Extract file name
-  file_name <- basename(csv_file)
-  # Check if a table already exists for this CSV file
-  table_name <- get_table_name(file_name)
-  if (!(table_name %in% dbListTables(connection))) {
-    # If table doesn't exist, create a new data frame
-    new_data_frame <- read.csv(csv_file)
-    # Add the data frame to the list with the file name as key
-    new_data_frames[[file_name]] <- new_data_frame
-    # Create a new table in the database
-    dbWriteTable(connection, table_name, new_data_frame, row.names = FALSE)
-    cat("Table", table_name, "created and data inserted.\n")
-  } else {
-    cat("Table", table_name, "already exists.\n")
-  }
-}
-
-# Function to extract table name from file name
-get_table_name <- function(file_name) {
-  # Remove file extension
-  table_name <- tools::file_path_sans_ext(file_name)
-  # Prepend "project_" to table name
-  table_name <- paste0("project_", table_name)
-  return(table_name)
-}
-
-# Check for new CSV files in data_upload folder
-csv_files <- list.files(path = "data_upload", pattern = "\\.csv$", full.names = TRUE)
-
-# Create a list to store data frames
-new_data_frames <- list()
-
-# Loop through each CSV file
-for (csv_file in csv_files) {
-  # Extract file name
-  file_name <- basename(csv_file)
-  # Check if a table already exists for this CSV file
-  table_name <- get_table_name(file_name)
-  if (!(table_name %in% dbListTables(connection))) {
-    # If table doesn't exist, create a new data frame
-    new_data_frame <- read.csv(csv_file)
-    # Add the data frame to the list with the file name as key
-    new_data_frames[[file_name]] <- new_data_frame
-    # Create a new table in the database
-    dbWriteTable(connection, table_name, new_data_frame, row.names = FALSE)
-    cat("Table", table_name, "created and data inserted.\n")
-  } else {
-    cat("Table", table_name, "already exists.\n")
-  }
-}
-
 # Check for new data if available in the datasets.
 # Function to check if data exists in a table
 data_exists <- function(table_name) {
@@ -377,7 +308,6 @@ insert_data("project_buyer_orders_products", read_csv("data_upload/buyer_orders_
 
 ## Self referencing table for buyer
 insert_data("project_references", read_csv("data_upload/references_df.csv"))
-
 
 # Verify the table was created by listing all tables in the database
 #RSQLite::dbListTables(connection)
