@@ -4,6 +4,7 @@ library(RSQLite)
 library(dplyr)
 library(sf)
 library(rnaturalearth)
+library(tidyr)
 library(ggplot2)
 library(rnaturalearthdata)
 
