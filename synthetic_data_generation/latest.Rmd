@@ -896,12 +896,12 @@ head(references_df)
 ```{r}
 #converting dataframes to csv files
 # Extract each data frame to a CSV file with the same name
-write.csv(products_df, file = "../data_upload/products_df.csv", row.names = FALSE)
-write.csv(sellers_df, file = "../data_upload/sellers_df.csv", row.names = FALSE)
-write.csv(categories_df, file = "../data_upload/categories_df.csv", row.names = FALSE)
-write.csv(buyer_df, file = "../data_upload/buyer_df.csv", row.names = FALSE)
-write.csv(contact_df, file = "../data_upload/contact_df.csv", row.names = FALSE)
-write.csv(review_df, file = "../data_upload/review_df.csv", row.names = FALSE)
-write.csv(references_df, file = "../data_upload/references_df.csv", row.names = FALSE)
-write.csv(buyer_orders_products, file = "../data_upload/buyer_orders_products.csv", row.names = FALSE)
+write.csv(products_df, file = "../data_upload/products_df/products_df.csv", row.names = FALSE)
+write.csv(sellers_df, file = "../data_upload/sellers_df/sellers_df.csv", row.names = FALSE)
+write.csv(categories_df, file = "../data_upload/categories_df/categories_df.csv", row.names = FALSE)
+write.csv(buyer_df, file = "../data_upload/buyer_df/buyer_df.csv", row.names = FALSE)
+write.csv(contact_df, file = "../data_upload/contact_df/contact_df.csv", row.names = FALSE)
+write.csv(review_df, file = "../data_upload/review_df/review_df.csv", row.names = FALSE)
+write.csv(references_df, file = "../data_upload/references_df/references_df.csv", row.names = FALSE)
+write.csv(buyer_orders_products, file = "../data_upload/buyer_orders_products/buyer_orders_products.csv", row.names = FALSE)
 ```

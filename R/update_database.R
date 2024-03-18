@@ -125,30 +125,43 @@ CREATE TABLE IF NOT EXISTS 'project_references' (
 # Verify the table was created by listing all tables in the database
 RSQLite::dbListTables(connection)
 
-#load the dataset into data frames
-# List all CSV files in the data_upload directory
-csv_files <- list.files(path = "data_upload", pattern = "\\.csv$", full.names = TRUE)
+# Create a list to store all entity dataframes
+all_entity_data <- list()
 
-# Create a list to store all data frames
-all_data_frames <- list()
+# List all entity folders within the "data_upload" directory
+entity_folders <- list.dirs(path = "data_upload", full.names = TRUE, recursive = FALSE)
 
-# Loop through each CSV file
-for (csv_file in csv_files) {
-  # Extract filename without extension
-  filename <- tools::file_path_sans_ext(basename(csv_file))
+# Loop through each entity folder
+for (entity_folder in entity_folders) {
+  # Extract the folder name
+  entity_name <- basename(entity_folder)
   
-  # Read the CSV file into a data frame
-  data_frame <- read.csv(csv_file)
+  # List all CSV files in the entity folder
+  csv_files <- list.files(path = entity_folder, pattern = "\\.csv$", full.names = TRUE)
   
-  # Assign the data frame to a new variable with a name starting with "project_"
-  assign(paste0("project_", filename), data_frame)
+  # Initialize an empty dataframe to store data for the entity
+  entity_data <- data.frame()
   
-  # Add the data frame to the list
-  all_data_frames[[paste0("project_", filename)]] <- data_frame
+  # Loop through each CSV file in the entity folder
+  for (csv_file in csv_files) {
+    # Read the CSV file into a dataframe
+    csv_data <- read.csv(csv_file)
+    
+    # Merge the data from the CSV file into the entity dataframe
+    entity_data <- rbind(entity_data, csv_data)
+  }
+  
+  # Assign the entity dataframe to a variable with a name starting with "project_"
+  assign(paste0("project_", entity_name), entity_data)
+  
+  # Add the entity dataframe to the list
+  all_entity_data[[paste0("project_", entity_name)]] <- entity_data
 }
 
-# Check the names of the created data frames
-print(names(all_data_frames))
+# Check the names of the created entity dataframes
+print(names(all_entity_data))
+
+
 
 # Data Validation
 # Function to validate phone numbers
