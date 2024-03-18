@@ -613,7 +613,7 @@ this_filename_date <- as.character(Sys.Date())
 this_filename_time <- as.character(format(Sys.time(), format = "%H_%M"))
 
 # Save top_10 plot
-ggsave(filename = paste0(figure_directory, "top_10_", this_filename_date, "_", this_filename_time, ".png"), plot = top_10)
+ggsave(filename = paste0(figure_directory, "top_10_", this_filename_date, "_", this_filename_time, ".png"), width = 6, height = 6, plot = top_10)
 
 # Save revenue_by_categories_plot
 ggsave(filename = paste0(figure_directory, "revenue_by_categories_plot_", this_filename_date, "_", this_filename_time, ".png"), plot = revenue_by_categories_plot)
