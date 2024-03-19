@@ -266,36 +266,51 @@ if (any(!project_references_df$buyer_id %in% project_buyer_df$buyer_id) ||
   stop("Foreign key violation: buyer_id or referred_by in project_references_df do not exist in project_buyer_df")
 }
 
-# Check for new data if available in the datasets.
 # Function to check if data exists in a table
-data_exists <- function(connection, table_name) {
+data_exists <- function(connection, table_name, data_frame) {
+  # Construct the query to check for existence of data
   query <- paste0("SELECT COUNT(*) FROM ", table_name)
   result <- dbGetQuery(connection, query)
   return(result[[1]] > 0)
 }
 
-# Function to insert data into a table from a data frame
-insert_data_from_df <- function(connection, table_name, data_frame) {
+# Function to insert data into a table if it doesn't exist
+insert_data_if_not_exists <- function(connection, table_name, data_frame) {
   # Check if data already exists in the table
   if (data_exists(connection, table_name)) {
     cat("Data already exists in", table_name, "\n")
     return()
   }
   
-  # If data doesn't exist, insert it into the table
-  dbWriteTable(connection, table_name, data_frame, row.names = FALSE, append = TRUE)
+  # Extract column names
+  columns <- names(data_frame)
+  
+  # Construct the INSERT INTO SQL query
+  insert_query <- paste0("INSERT INTO '", table_name, "' (", paste0("'", columns, "'", collapse = ", "), ") VALUES ")
+  
+  # Loop through each row of the data frame and insert values
+  for (i in 1:nrow(data_frame)) {
+    values <- paste0("(", paste0("'", gsub("'", "''", unlist(data_frame[i,])), "'", collapse = ","), ")")
+    dbExecute(connection, paste0(insert_query, values))
+  }
+  
   cat("Data inserted into", table_name, "\n")
 }
 
+
+
+
+
+
 # Insert data from data frames into respective tables
-insert_data_from_df(connection, "project_products", project_products_df)
-insert_data_from_df(connection, "project_seller", project_sellers_df)
-insert_data_from_df(connection, "project_categories", project_categories_df)
-insert_data_from_df(connection, "project_buyer", project_buyer_df)
-insert_data_from_df(connection, "project_contact_details", project_contact_df)
-insert_data_from_df(connection, "project_review", project_review_df)
-insert_data_from_df(connection, "project_buyer_orders_products", project_buyer_orders_products)
-insert_data_from_df(connection, "project_references", project_references_df)
+insert_data_if_not_exists(connection, "project_products", project_products_df)
+insert_data_if_not_exists(connection, "project_seller", project_sellers_df)
+insert_data_if_not_exists(connection, "project_categories", project_categories_df)
+insert_data_if_not_exists(connection, "project_buyer", project_buyer_df)
+insert_data_if_not_exists(connection, "project_contact_details", project_contact_df)
+insert_data_if_not_exists(connection, "project_review", project_review_df)
+insert_data_if_not_exists(connection, "project_buyer_orders_products", project_buyer_orders_products)
+insert_data_if_not_exists(connection, "project_references", project_references_df)
 
 
 # Verify the table was created by listing all tables in the database
@@ -311,15 +326,18 @@ buyer_table <- dbReadTable(connection, "project_buyer")
 #Average daily sales
 #calculating the average revenue we are earning every day
 
+#Writing SQL query to retrieve the money generated from sales and the date from product and orders table
 
 sales<- RSQLite::dbGetQuery(connection,"
           SELECT a.price, datetime(b.order_date, 'unixepoch') AS date_time
           FROM project_buyer_orders_products b
           INNER JOIN project_products a ON b.product_id = a.product_id " )
 
-
+#seperating the date_time column to get date separately
 sales_by_date <- sales %>%
   separate(date_time, into = c("date", "time"), sep = " ")
+
+#dividing the total sales by the distinct date time to calculate the average sales
 
 average_revenue <-sales_by_date %>%
   group_by(date) %>%
@@ -328,7 +346,9 @@ average_revenue <-sales_by_date %>%
 
 #2
 #Total sales 
-#Calculating the revenue we have
+#Calculating the total revenue we have
+
+#writing the SQL query to retrieve the sum of revenue gathered through all sales
 
 total_sales<-RSQLite::dbGetQuery(connection, "
           SELECT SUM(a.price) AS total_sales
@@ -337,6 +357,8 @@ total_sales<-RSQLite::dbGetQuery(connection, "
 
 #3
 # best performing products by revenue
+
+#writing the SQL query to retrieve best selling products by revenue gathered
 
 products <- RSQLite::dbGetQuery(connection, 
                                 "SELECT SUM(a.price) AS revenue, b.product_id, a.product_name
@@ -355,6 +377,7 @@ top_10_products <- RSQLite::dbGetQuery(connection,
                                            ORDER BY revenue DESC
                                            LIMIT 10" )
 
+#plotting the best selling products by revenue using GGplot
 top_10 <- ggplot(top_10_products, aes(x = reorder(product_name, -revenue), y = revenue, fill = product_name)) +
   geom_bar(stat = "identity",show.legend = FALSE) +
   labs(title = "Top 10 Products by Revenue", x = "Product Name", y = "Revenue") +
@@ -367,6 +390,8 @@ top_10
 #revenue by categories
 #We calculate the total revenue of each category
 
+#Writing the SQL query to calculate the revenue for each category
+
 revenue_by_categories <- RSQLite::dbGetQuery(connection,
                                              "SELECT c.category_name, SUM(b.price) AS revenue
                                       FROM project_buyer_orders_products a
@@ -376,7 +401,7 @@ revenue_by_categories <- RSQLite::dbGetQuery(connection,
                                       ORDER BY revenue DESC
                                       " )
 
-#Finding the revenue for each category over time 
+#Finding the revenue for each category over the time period
 revenue_by_categories_per_date <- RSQLite::dbGetQuery(connection,
                                                       "SELECT c.category_name, b.price, datetime(a.order_date, 'unixepoch') AS date_time
                                       FROM project_buyer_orders_products a
@@ -384,15 +409,19 @@ revenue_by_categories_per_date <- RSQLite::dbGetQuery(connection,
                                       INNER JOIN project_categories c ON b.category_id = c.category_id
                                       
                                       " )
+
+#seperating the date_time format into date and time
 revenue_by_categories_per_date<- revenue_by_categories_per_date %>%
   separate(date_time, into = c("date", "time"), sep = " ")
 
-
+#calculating the revene each category gathered each day 
 revenue_by_categories_per_date <- revenue_by_categories_per_date  %>%
   group_by(category_name, date) %>%
   summarise(sum_price = sum(price)) %>%
   ungroup()
-#Revenue by category over time
+
+#plotting Revenue by category over time for each category using ggplot and facet wrap
+
 revenue_by_categories_plot <- ggplot(revenue_by_categories_per_date, aes(x = date, y = sum_price, group = category_name, color = category_name)) +
   geom_line() +
   facet_wrap(~ category_name, scales = "free_y") +
@@ -419,6 +448,7 @@ revenue_by_categories_bar
 #Top sellers
 #We check which sellers are making the most revenue
 
+#first we write an sql query to get sellers and their revenue
 top_sellers <- RSQLite::dbGetQuery(connection, 
                                    "SELECT SUM(b.price) AS revenue, c.seller_name
                                            FROM project_buyer_orders_products a
@@ -436,6 +466,8 @@ top_10_sellers <- RSQLite::dbGetQuery(connection,
                                            GROUP BY c.seller_name
                                            ORDER BY revenue DESC
                                            LIMIT 10" )
+
+#plotting top 10 sellers by revenue
 top_10_sellers_plot <- ggplot(top_10_sellers, aes(x = reorder(seller_name, -revenue), y = revenue, fill = seller_name)) +
   geom_bar(stat = "identity",show.legend = FALSE) +
   labs(title = "Top 10 Sellers by Revenue", x = "Seller Name", y = "Revenue") +
@@ -446,6 +478,9 @@ top_10_sellers_plot
 
 #6
 #calculating sales by state
+
+# we write the SQL query to get the dataframe for the revenue grouped by state
+
 sales_by_state <- RSQLite::dbGetQuery(connection, 
                                       "SELECT SUM(b.price) AS revenue, c.state
                                       FROM project_buyer_orders_products a
@@ -455,6 +490,9 @@ sales_by_state <- RSQLite::dbGetQuery(connection,
                                       ORDER BY revenue DESC" )
 #7
 #sales_by_city
+
+#we write the SQL query to get the dataframe for the revenue grouped by city
+
 sales_by_city <- RSQLite::dbGetQuery(connection, 
                                      "SELECT SUM(b.price) AS revenue, c.city
                                       FROM project_buyer_orders_products a
@@ -473,6 +511,7 @@ sales_by_top10_city <- RSQLite::dbGetQuery(connection,
                                       ORDER BY revenue DESC
                                       LIMIT 10" )
 
+#to plot the cities on the map we create a dataframe with the names of our top 10 cities and their longitude and latitude
 
 cities_uk <- data.frame(
   city = c("Edinburgh", "Bangor", "Derby", "St Davids", "Ripon", "Doncaster", "Canterbury", "Coventry", "Lisburn", "St Asaph"),
@@ -480,7 +519,11 @@ cities_uk <- data.frame(
   lat = c(55.9533, 53.2268, 52.9228, 51.8815, 54.1361, 53.5228, 51.2808, 52.4068, 54.5097, 53.2577)
 )
 
+#we merge our dataframe that we got through SQL with the one we created on the names of the cities to get revenue and longitude and latitude in the same dataframe
+
 merged_data <- merge(cities_uk, sales_by_top10_city, by = "city", all.x = TRUE)
+
+#plotting the top 10 cities on the map using the sf library and ggplot
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 uk <- world[world$admin == 'United Kingdom', ]
@@ -511,6 +554,9 @@ Sales_user_type <- RSQLite::dbGetQuery(connection,
                                                                            INNER JOIN project_buyer c ON b.buyer_id = c.buyer_id ")
 #8
 #using R to sum sales per order
+
+#we use the unique combinations of buyer_id and order_date as one order_id 
+
 revenue_per_order <- Sales_user_type  %>%
   group_by(date_time, buyer_id, user_type) %>%
   summarise(sum_price = sum(price)) %>%
@@ -520,15 +566,21 @@ revenue_per_order <- Sales_user_type  %>%
 number_of_orders_per_buyer <- revenue_per_order %>%
   count(buyer_id)
 
+#counting total number of buyers on the system
 Count_of_buyers <- RSQLite::dbGetQuery(connection,"
                                        SELECT DISTINCT(buyer_id)
                                        FROM project_buyer ")
+
+#joining the buyers who have made an order with those who havent made any order
 
 total_orders_per_buyer <- left_join(Count_of_buyers ,number_of_orders_per_buyer, by = "buyer_id") %>%
   mutate(order_quantity = ifelse(is.na(n), 0, n))
 
 total_orders_per_buyer<- total_orders_per_buyer %>%
   select(-n)
+
+#plotting how many buyers we have per order number
+#we are trying to see how many buyers have never ordered, how many have made 1 and so on.
 
 orders_plot_data <-total_orders_per_buyer %>%
   group_by(order_quantity) %>%
@@ -543,6 +595,8 @@ buyers_by_orders_plot <- ggplot(orders_plot_data, aes(x = order_quantity, y = nu
 buyers_by_orders_plot
 
 #9
+#finding the total revenue after shipping and discounts
+
 #dividing the date and time column to just get date
 
 revenue_per_order <- revenue_per_order %>%
@@ -579,6 +633,31 @@ Sales_by_user_type <- RSQLite::dbGetQuery(connection,
                                       GROUP BY c.user_type
                                       ORDER BY revenue DESC" )
 
+
+#11
+#Finding average order revenue 
+
+average_revenue_by_order <- mean(revenue_per_order$sum_price)
+
+#The average revenue we make from an order is 54.26 pounds
+
+#12
+#Finding the average number of products in an order
+#Writing an SQL query to get the product_id , buyer_id, order_date, we use the unique combinations of buyer_id and order_date as one order_id
+Orders <- RSQLite::dbGetQuery(connection,
+                              "SELECT a.product_id, b.buyer_id, b.order_date
+                              FROM project_buyer_orders_products b
+                              INNER JOIN project_products a ON b.product_id = a.product_id" )
+
+
+#using dplyr to count how many products have the same buyer_id and date_time to see the average quantity of products in an order
+order_quantity <- Orders %>%
+  group_by( buyer_id, order_date) %>%
+  summarise(count = n_distinct(product_id)) 
+
+average_order_quantity <- round(mean(order_quantity$count))
+
+#From this we can see that on average we have 3 products in an order
 
 
 
