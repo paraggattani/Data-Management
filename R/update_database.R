@@ -21,8 +21,8 @@ dbExecute(connection, "
   'in_stock' BIT NOT NULL DEFAULT 0,
   'available_units' INT NOT NULL DEFAULT 0,
   'price' MONEY NOT NULL CHECK (price > 0),
-  FOREIGN KEY ('seller_id') REFERENCES seller('seller_id'),
-  FOREIGN KEY ('category_id') REFERENCES category('category_id')
+  FOREIGN KEY ('seller_id') REFERENCES project_seller ('seller_id'),
+  FOREIGN KEY ('category_id') REFERENCES project_category('category_id')
 );
 ")
 
@@ -76,7 +76,7 @@ dbExecute(connection, "
   'street' VARCHAR,
   'phone_number' VARCHAR(10),
   'address_type' TEXT,
-  FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id')
+  FOREIGN KEY ('buyer_id') REFERENCES project_buyer ('buyer_id')
 );
 ")
 
@@ -89,8 +89,8 @@ dbExecute(connection, "
   'rating' INT CHECK (rating >= 1 AND rating <= 5),
   'review' TEXT,
   'review_date' DATE,
-   FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id'),
-   FOREIGN KEY ('product_id') REFERENCES products ('product_id')
+   FOREIGN KEY ('buyer_id') REFERENCES project_buyer ('buyer_id'),
+   FOREIGN KEY ('product_id') REFERENCES project_products ('product_id')
 );
 ")
 
@@ -107,8 +107,8 @@ CREATE TABLE IF NOT EXISTS 'project_buyer_orders_products' (
   'order_status' TEXT,
   'payment_type' TEXT,
   'address_type' TEXT,
-  FOREIGN KEY ('product_id') REFERENCES products ('product_id'),
-  FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id')
+  FOREIGN KEY ('product_id') REFERENCES project_products ('product_id'),
+  FOREIGN KEY ('buyer_id') REFERENCES project_buyer ('buyer_id')
 );
 ")
 
@@ -117,7 +117,7 @@ dbExecute(connection, "
 CREATE TABLE IF NOT EXISTS 'project_references' (
   'buyer_id' VARCHAR(255),
   'referred_by' VARCHAR(255),
-   FOREIGN KEY ('buyer_id') REFERENCES buyer ('buyer_id')
+   FOREIGN KEY ('buyer_id') REFERENCES project_buyer ('buyer_id')
 );
 ")
 
