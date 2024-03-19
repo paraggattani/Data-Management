@@ -488,6 +488,10 @@ sales_by_state <- RSQLite::dbGetQuery(connection,
                                       INNER JOIN project_contact_details c ON a.buyer_id = c.buyer_id
                                       GROUP BY c.state
                                       ORDER BY revenue DESC" )
+
+sales_by_state
+
+
 #7
 #sales_by_city
 
